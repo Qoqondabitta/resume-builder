@@ -1,9 +1,10 @@
 'use client';
 
 import { Mail, Phone, MapPin, Globe, Linkedin } from 'lucide-react';
-import { ResumeData } from '@/types/resume';
+import { type ResumeData } from '@/types/resume';
+import { type SectionType } from '@/components/editor/SectionBlock';
 
-export default function CorporateTemplate({ data }: { data: ResumeData }) {
+export default function CorporateTemplate({ data }: { data: ResumeData; sectionOrder?: SectionType[] }) {
   return (
     <div className="w-full min-h-full bg-white font-sans text-gray-800">
 
@@ -79,13 +80,13 @@ export default function CorporateTemplate({ data }: { data: ResumeData }) {
         {/* Main */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-5 sm:py-7 space-y-5 sm:space-y-6 min-w-0">
 
-          <section>
-            <CorporateHeader label="Executive Summary" />
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{data.summary}</p>
+          <section data-section="summary">
+            <div className="section-title"><CorporateHeader label="Executive Summary" /></div>
+            <p className="section-content text-xs sm:text-sm text-slate-600 leading-relaxed">{data.summary}</p>
           </section>
 
-          <section>
-            <CorporateHeader label="Professional Experience" />
+          <section data-section="experience">
+            <div className="section-title"><CorporateHeader label="Professional Experience" /></div>
             <div className="space-y-5">
               {data.experience.map((exp) => (
                 <div
@@ -118,8 +119,8 @@ export default function CorporateTemplate({ data }: { data: ResumeData }) {
             </div>
           </section>
 
-          <section>
-            <CorporateHeader label="Key Projects" />
+          <section data-section="projects">
+            <div className="section-title"><CorporateHeader label="Key Projects" /></div>
             <div className="space-y-3">
               {data.projects.map((p) => (
                 <div
@@ -149,9 +150,9 @@ export default function CorporateTemplate({ data }: { data: ResumeData }) {
             </div>
           </section>
 
-          <section>
-            <CorporateHeader label="Awards & Achievements" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <section data-section="achievements">
+            <div className="section-title"><CorporateHeader label="Awards & Achievements" /></div>
+            <div className="section-content grid grid-cols-1 sm:grid-cols-2 gap-2">
               {data.achievements.map((a) => (
                 <div key={a} className="flex items-start gap-2 text-[11px] sm:text-xs text-slate-600">
                   <span className="shrink-0 mt-0.5 text-blue-500 font-bold">✓</span>
@@ -160,6 +161,20 @@ export default function CorporateTemplate({ data }: { data: ResumeData }) {
               ))}
             </div>
           </section>
+
+          {data.certifications && data.certifications.length > 0 && (
+            <section data-section="certifications">
+              <div className="section-title"><CorporateHeader label="Certifications" /></div>
+              <div className="section-content grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {data.certifications.map((c) => (
+                  <div key={c} className="flex items-start gap-2 text-[11px] sm:text-xs text-slate-600">
+                    <span className="shrink-0 mt-0.5 text-blue-500 font-bold">✓</span>
+                    {c}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </main>
       </div>
     </div>

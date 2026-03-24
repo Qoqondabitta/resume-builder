@@ -1,11 +1,12 @@
 'use client';
 
 import { Mail, Phone, MapPin, Globe, Linkedin } from 'lucide-react';
-import { ResumeData } from '@/types/resume';
+import { type ResumeData } from '@/types/resume';
+import { type SectionType } from '@/components/editor/SectionBlock';
 
 const ACCENT = 'from-violet-600 to-blue-600';
 
-export default function CreativeTemplate({ data }: { data: ResumeData }) {
+export default function CreativeTemplate({ data }: { data: ResumeData; sectionOrder?: SectionType[] }) {
   return (
     <div className="w-full min-h-full bg-gray-50 font-sans text-gray-800">
 
@@ -43,14 +44,14 @@ export default function CreativeTemplate({ data }: { data: ResumeData }) {
       <div className="px-4 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6 sm:space-y-8">
 
         {/* Summary */}
-        <section>
-          <CreativeSectionTitle label="About Me" />
-          <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{data.summary}</p>
+        <section data-section="summary">
+          <div className="section-title"><CreativeSectionTitle label="About Me" /></div>
+          <p className="section-content text-xs sm:text-sm text-gray-600 leading-relaxed">{data.summary}</p>
         </section>
 
         {/* Skills */}
-        <section>
-          <CreativeSectionTitle label="Skills & Technologies" />
+        <section data-section="skills">
+          <div className="section-title"><CreativeSectionTitle label="Skills & Technologies" /></div>
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {data.skills.map((s, i) => (
               <span
@@ -70,8 +71,8 @@ export default function CreativeTemplate({ data }: { data: ResumeData }) {
         </section>
 
         {/* Experience timeline */}
-        <section>
-          <CreativeSectionTitle label="Work Experience" />
+        <section data-section="experience">
+          <div className="section-title"><CreativeSectionTitle label="Work Experience" /></div>
           <div className="space-y-5">
             {data.experience.map((exp) => (
               <div
@@ -107,8 +108,8 @@ export default function CreativeTemplate({ data }: { data: ResumeData }) {
 
         {/* Projects + Education/Achievements — stack on mobile */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-          <section>
-            <CreativeSectionTitle label="Projects" />
+          <section data-section="projects">
+            <div className="section-title"><CreativeSectionTitle label="Projects" /></div>
             <div className="space-y-3 sm:space-y-4">
               {data.projects.map((p) => (
                 <div
@@ -139,8 +140,8 @@ export default function CreativeTemplate({ data }: { data: ResumeData }) {
           </section>
 
           <div className="space-y-5 sm:space-y-6">
-            <section>
-              <CreativeSectionTitle label="Education" />
+            <section data-section="education">
+              <div className="section-title"><CreativeSectionTitle label="Education" /></div>
               {data.education.map((e) => (
                 <div
                   key={e.degree}
@@ -159,19 +160,42 @@ export default function CreativeTemplate({ data }: { data: ResumeData }) {
               ))}
             </section>
 
-            <section>
-              <CreativeSectionTitle label="Achievements" />
-              <div className="space-y-2">
+            <section data-section="achievements">
+              <div className="section-title"><CreativeSectionTitle label="Achievements" /></div>
+              <div className="section-content space-y-2">
                 {data.achievements.map((a) => (
                   <div key={a} className="flex gap-2 items-start group">
-                    <span className="text-yellow-500 shrink-0 text-xs leading-none mt-0.5 group-hover:scale-110 transition-transform">
-                      ★
-                    </span>
+                    <span className="text-yellow-500 shrink-0 text-xs leading-none mt-0.5 group-hover:scale-110 transition-transform">★</span>
                     <p className="text-[11px] sm:text-xs text-gray-600">{a}</p>
                   </div>
                 ))}
               </div>
             </section>
+
+            {data.certifications && data.certifications.length > 0 && (
+              <section data-section="certifications">
+                <div className="section-title"><CreativeSectionTitle label="Certifications" /></div>
+                <div className="section-content space-y-2">
+                  {data.certifications.map((c) => (
+                    <div key={c} className="flex gap-2 items-start group">
+                      <span className="text-violet-500 shrink-0 text-xs leading-none mt-0.5">✦</span>
+                      <p className="text-[11px] sm:text-xs text-gray-600">{c}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {data.languages && data.languages.length > 0 && (
+              <section data-section="languages">
+                <div className="section-title"><CreativeSectionTitle label="Languages" /></div>
+                <div className="section-content flex flex-wrap gap-1.5">
+                  {data.languages.map((l) => (
+                    <span key={l} className="text-[11px] bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-medium">{l}</span>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </div>

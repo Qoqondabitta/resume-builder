@@ -5,6 +5,7 @@ import { Reorder, useDragControls } from 'framer-motion';
 import {
   GripVertical, ChevronDown, ChevronUp,
   Trash2, Pencil, Check, X, Plus, Building2,
+  AlignLeft, AlignCenter, AlignRight,
 } from 'lucide-react';
 import { type ResumeData, type Experience, type Education, type Project } from '@/types/resume';
 
@@ -14,11 +15,21 @@ export type SectionType =
   | 'summary' | 'experience' | 'education' | 'skills'
   | 'projects' | 'achievements' | 'certifications' | 'languages' | 'custom';
 
+export interface SectionFormatting {
+  titleAlign?: 'left' | 'center' | 'right';
+  titleBold?: boolean;
+  titleItalic?: boolean;
+  titleColor?: string;
+  contentSize?: 'xs' | 'sm' | 'base';
+  lineHeight?: 'tight' | 'normal' | 'relaxed';
+}
+
 export interface EditorSection {
   id: string;
   type: SectionType;
   title: string;
   customContent?: string[];
+  formatting?: SectionFormatting;
 }
 
 interface SectionBlockProps {
@@ -31,7 +42,7 @@ interface SectionBlockProps {
   dragControls: ReturnType<typeof useDragControls>;
 }
 
-// ── Draggable wrapper (creates its own drag controls) ────────────────────────
+// ── Draggable wrapper ────────────────────────────────────────────────────────
 
 export function DraggableSection(props: Omit<SectionBlockProps, 'dragControls'>) {
   const dragControls = useDragControls();
@@ -68,8 +79,6 @@ export default function SectionBlock({
 
       {/* ── Header bar ── */}
       <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border-b border-gray-100">
-
-        {/* Drag handle */}
         <button
           onPointerDown={(e) => dragControls.start(e)}
           className="touch-none cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors p-0.5 shrink-0"
@@ -78,7 +87,6 @@ export default function SectionBlock({
           <GripVertical size={15} />
         </button>
 
-        {/* Editable title */}
         {editingTitle ? (
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <input
@@ -107,7 +115,6 @@ export default function SectionBlock({
           </button>
         )}
 
-        {/* Collapse / Delete */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             onClick={() => setCollapsed((c) => !c)}
@@ -125,6 +132,14 @@ export default function SectionBlock({
         </div>
       </div>
 
+      {/* ── Formatting bar ── */}
+      {!collapsed && (
+        <FormattingBar
+          formatting={section.formatting}
+          onChange={(fmt) => onSectionChange({ ...section, formatting: fmt })}
+        />
+      )}
+
       {/* ── Body ── */}
       {!collapsed && (
         <div className="p-3 sm:p-4 select-text">
@@ -135,6 +150,140 @@ export default function SectionBlock({
             onSectionChange={onSectionChange}
           />
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Formatting toolbar ────────────────────────────────────────────────────────
+
+function FormattingBar({
+  formatting = {},
+  onChange,
+}: {
+  formatting?: SectionFormatting;
+  onChange: (f: SectionFormatting) => void;
+}) {
+  const upd = (patch: Partial<SectionFormatting>) => onChange({ ...formatting, ...patch });
+
+  return (
+    <div className="px-3 py-2 border-b border-gray-100 bg-gray-50/70 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+      {/* Title label */}
+      <span className="text-[9px] text-gray-400 uppercase tracking-wider font-bold shrink-0 hidden sm:block">
+        Style:
+      </span>
+
+      {/* Alignment */}
+      <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden shrink-0" title="Title alignment">
+        {([
+          { a: 'left'   as const, Icon: AlignLeft   },
+          { a: 'center' as const, Icon: AlignCenter },
+          { a: 'right'  as const, Icon: AlignRight  },
+        ]).map(({ a, Icon }) => (
+          <button
+            key={a}
+            onClick={() => upd({ titleAlign: a })}
+            className={`p-1.5 transition-colors ${
+              formatting.titleAlign === a
+                ? 'bg-primary-50 text-primary-600'
+                : 'text-gray-400 hover:text-gray-600'
+            }`}
+            title={`Align ${a}`}
+          >
+            <Icon size={11} />
+          </button>
+        ))}
+      </div>
+
+      {/* Bold / Italic */}
+      <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden shrink-0">
+        <button
+          onClick={() => upd({ titleBold: !formatting.titleBold })}
+          className={`w-7 h-7 text-xs font-black transition-colors flex items-center justify-center ${
+            formatting.titleBold
+              ? 'bg-primary-50 text-primary-600'
+              : 'text-gray-400 hover:text-gray-700'
+          }`}
+          title="Bold title"
+        >
+          B
+        </button>
+        <button
+          onClick={() => upd({ titleItalic: !formatting.titleItalic })}
+          className={`w-7 h-7 text-xs italic font-semibold transition-colors flex items-center justify-center ${
+            formatting.titleItalic
+              ? 'bg-primary-50 text-primary-600'
+              : 'text-gray-400 hover:text-gray-700'
+          }`}
+          title="Italic title"
+        >
+          I
+        </button>
+      </div>
+
+      {/* Title color */}
+      <label className="flex items-center gap-1 cursor-pointer shrink-0" title="Title color">
+        <span className="text-[9px] text-gray-400 uppercase font-bold hidden sm:block">Clr</span>
+        <div
+          className="w-5 h-5 rounded border border-gray-200 overflow-hidden relative"
+          style={{ backgroundColor: formatting.titleColor ?? '#374151' }}
+        >
+          <input
+            type="color"
+            value={formatting.titleColor ?? '#374151'}
+            onChange={(e) => upd({ titleColor: e.target.value })}
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+          />
+        </div>
+      </label>
+
+      {/* Content text size */}
+      <div className="flex items-center gap-1 shrink-0">
+        <span className="text-[9px] text-gray-400 uppercase font-bold hidden sm:block">Size:</span>
+        {(['xs', 'sm', 'base'] as const).map((sz, i) => (
+          <button
+            key={sz}
+            onClick={() => upd({ contentSize: sz })}
+            className={`w-6 h-6 text-[10px] rounded-md transition-colors font-bold ${
+              formatting.contentSize === sz
+                ? 'bg-primary-50 text-primary-600'
+                : 'text-gray-400 hover:text-gray-600 bg-white border border-gray-200'
+            }`}
+            title={['Small text', 'Medium text', 'Large text'][i]}
+          >
+            {['S', 'M', 'L'][i]}
+          </button>
+        ))}
+      </div>
+
+      {/* Line height */}
+      <div className="flex items-center gap-1 shrink-0">
+        <span className="text-[9px] text-gray-400 uppercase font-bold hidden sm:block">Spacing:</span>
+        {(['tight', 'normal', 'relaxed'] as const).map((lh, i) => (
+          <button
+            key={lh}
+            onClick={() => upd({ lineHeight: lh })}
+            className={`w-6 h-6 text-[9px] rounded-md transition-colors font-bold ${
+              formatting.lineHeight === lh
+                ? 'bg-primary-50 text-primary-600'
+                : 'text-gray-400 hover:text-gray-600 bg-white border border-gray-200'
+            }`}
+            title={['Tight spacing', 'Normal spacing', 'Relaxed spacing'][i]}
+          >
+            {['T', 'N', 'R'][i]}
+          </button>
+        ))}
+      </div>
+
+      {/* Reset */}
+      {Object.keys(formatting).length > 0 && (
+        <button
+          onClick={() => onChange({})}
+          className="text-[9px] text-gray-300 hover:text-red-400 transition-colors font-medium"
+          title="Reset formatting"
+        >
+          Reset
+        </button>
       )}
     </div>
   );
@@ -283,7 +432,6 @@ function ExperienceEditor({
             onUrl={(url) => update(i, { logoUrl: url })}
           />
 
-          {/* Bullets */}
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
               Bullet Points
@@ -426,8 +574,8 @@ function ProjectsEditor({
           <EntryHeader label={`Project ${i + 1}`} onRemove={() => onChange(items.filter((_, j) => j !== i))} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <FieldInput value={proj.name}       placeholder="Project Name"           onChange={(v) => update(i, { name: v })} />
-            <FieldInput value={proj.link ?? ''} placeholder="Link (github.com/…)"    onChange={(v) => update(i, { link: v })} />
+            <FieldInput value={proj.name}       placeholder="Project Name"         onChange={(v) => update(i, { name: v })} />
+            <FieldInput value={proj.link ?? ''} placeholder="Link (github.com/…)"  onChange={(v) => update(i, { link: v })} />
           </div>
 
           <textarea
@@ -438,7 +586,6 @@ function ProjectsEditor({
             className="w-full text-xs text-gray-700 border border-gray-200 rounded-lg px-2.5 py-1.5 resize-none focus:border-primary-300 focus:ring-1 focus:ring-primary-100 outline-none bg-white transition-all"
           />
 
-          {/* Tech tags */}
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Tech Stack</p>
             <div className="flex flex-wrap gap-1 mb-1.5">
