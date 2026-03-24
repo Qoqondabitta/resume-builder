@@ -1,28 +1,18 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Plus, Zap, TrendingUp, FileText, LayoutTemplate, Linkedin } from 'lucide-react';
+import { Plus, Zap, TrendingUp, FileText, LayoutTemplate, Linkedin, Code2, BarChart2, Palette, Megaphone, Database, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import ResumeCard from '@/components/ResumeCard';
 
-const SAMPLE_RESUMES = [
-  {
-    title:      'Software Engineer Resume',
-    lastEdited: 'Edited 2 hours ago',
-    status:     'Completed' as const,
-  },
-  {
-    title:      'Product Manager Resume',
-    lastEdited: 'Edited yesterday',
-    status:     'Draft' as const,
-  },
-  {
-    title:      'UX Designer Portfolio',
-    lastEdited: 'Edited 3 days ago',
-    status:     'Draft' as const,
-  },
+const TEMPLATES = [
+  { name: 'Software Engineer',  tag: 'Tech',        icon: Code2,        from: 'from-blue-500',   to: 'to-blue-700'   },
+  { name: 'Product Manager',    tag: 'Management',  icon: BarChart2,    from: 'from-violet-500', to: 'to-violet-700' },
+  { name: 'UX Designer',        tag: 'Design',      icon: Palette,      from: 'from-pink-500',   to: 'to-pink-700'   },
+  { name: 'Marketing Pro',      tag: 'Marketing',   icon: Megaphone,    from: 'from-orange-500', to: 'to-orange-700' },
+  { name: 'Data Scientist',     tag: 'Analytics',   icon: Database,     from: 'from-emerald-500',to: 'to-emerald-700'},
+  { name: 'Creative Director',  tag: 'Creative',    icon: Sparkles,     from: 'from-teal-500',   to: 'to-teal-700'   },
 ];
 
 const STATS = [
@@ -85,18 +75,45 @@ export default function DashboardPage() {
         })}
       </motion.div>
 
-      {/* Recent resumes */}
-      <div>
+      {/* Suggested Templates */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+      >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-gray-900">Recent Resumes</h2>
+          <h2 className="text-base font-bold text-gray-900">Suggested Templates</h2>
           <button className="text-xs text-primary-600 font-semibold hover:underline">View all</button>
         </div>
-        <div className="space-y-3">
-          {SAMPLE_RESUMES.map((resume, i) => (
-            <ResumeCard key={resume.title} {...resume} index={i} />
+        <div className="grid grid-cols-2 gap-3">
+          {TEMPLATES.map(({ name, tag, icon: Icon, from, to }) => (
+            <motion.div
+              key={name}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              className="bg-white rounded-2xl shadow-card overflow-hidden flex flex-col"
+            >
+              {/* Thumbnail */}
+              <div className={`bg-gradient-to-br ${from} ${to} h-24 flex items-center justify-center`}>
+                <Icon size={36} className="text-white/90" />
+              </div>
+              {/* Info + action */}
+              <div className="p-3 flex flex-col gap-2 flex-1">
+                <div>
+                  <p className="text-[13px] font-semibold text-gray-900 leading-tight">{name}</p>
+                  <span className="inline-block mt-0.5 text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{tag}</span>
+                </div>
+                <button
+                  onClick={() => setShowNew(true)}
+                  className="w-full mt-auto text-[11px] font-semibold text-primary-600 border border-primary-200 rounded-xl py-1.5 hover:bg-primary-50 active:scale-95 transition-all"
+                >
+                  Use Template
+                </button>
+              </div>
+            </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Quick tip card */}
       <motion.div
