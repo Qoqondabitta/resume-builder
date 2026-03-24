@@ -125,30 +125,25 @@ export default function DashboardPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setShowNew(false)}
         >
           <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white w-full max-w-lg mx-auto rounded-t-3xl shadow-2xl max-h-[80vh] flex flex-col"
+            className="bg-white w-full max-w-md rounded-3xl shadow-2xl max-h-[90vh] flex flex-col"
           >
-            {/* Drag handle */}
-            <div className="flex-shrink-0 pt-4 pb-2 px-6">
-              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto" />
-            </div>
-
             {/* Header */}
-            <div className="flex-shrink-0 px-6 pb-4">
+            <div className="flex-shrink-0 px-6 pt-6 pb-4">
               <h3 className="text-lg font-bold text-gray-900 mb-0.5">Create New Resume</h3>
               <p className="text-sm text-gray-500">Choose a starting point</p>
             </div>
 
             {/* Scrollable options */}
-            <div className="overflow-y-auto flex-1 px-6 pb-8">
+            <div className="overflow-y-auto flex-1 px-6 pb-6">
               {([
                 { label: 'Blank Resume',     desc: 'Start from scratch',           icon: FileText,       bg: 'bg-blue-50',   color: 'text-primary-600'   },
                 { label: 'From Template',    desc: 'Pick a professional design',    icon: LayoutTemplate, bg: 'bg-violet-50', color: 'text-violet-600'    },
