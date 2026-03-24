@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Reorder, useDragControls } from 'framer-motion';
 import {
   GripVertical, ChevronDown, ChevronUp, Trash2, Pencil, Check, X, Plus, Building2,
-  AlignLeft, AlignCenter, AlignRight,
+  AlignLeft, AlignCenter, AlignRight, Minus,
 } from 'lucide-react';
 import { type ResumeData, type Experience, type Education, type Project } from '@/types/resume';
 
@@ -17,11 +17,16 @@ export type SectionType =
 export type SectionPosition = 'left' | 'right' | 'full';
 
 export interface SectionFormatting {
+  // Title formatting
   titleAlign?: 'left' | 'center' | 'right';
   titleBold?: boolean;
   titleItalic?: boolean;
+  titleUnderline?: boolean;
   titleColor?: string;
-  contentSize?: 'xs' | 'sm' | 'base';
+  // Content formatting
+  contentSizePx?: number;        // 8–20px
+  contentBold?: boolean;
+  contentItalic?: boolean;
   lineHeight?: 'tight' | 'normal' | 'relaxed';
 }
 
@@ -69,9 +74,9 @@ export default function SectionBlock({
   section, data, onDataChange, onRename, onDelete, onSectionChange,
   dragControls, isActive, onActivate,
 }: SectionBlockProps) {
-  const [collapsed, setCollapsed]     = useState(false);
+  const [collapsed, setCollapsed]       = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft]   = useState(section.title);
+  const [titleDraft, setTitleDraft]     = useState(section.title);
 
   const commitTitle = () => {
     if (titleDraft.trim()) onRename(titleDraft.trim());
@@ -79,11 +84,13 @@ export default function SectionBlock({
     setEditingTitle(false);
   };
 
-  const setPosition = (pos: SectionPosition) => {
-    onSectionChange({ ...section, position: pos });
-  };
-
   const currentPos = section.position ?? 'full';
+
+  const POSITION_LABELS: Record<SectionPosition, string> = {
+    full:  'Full Width',
+    left:  'Left Column',
+    right: 'Right Column',
+  };
 
   return (
     <div
@@ -136,23 +143,18 @@ export default function SectionBlock({
           </button>
         )}
 
-        {/* Position toggle: L / R / F */}
-        <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden shrink-0">
-          {(['left', 'right', 'full'] as const).map((pos) => (
-            <button
-              key={pos}
-              onClick={(e) => { e.stopPropagation(); setPosition(pos); }}
-              title={pos === 'left' ? 'Left column' : pos === 'right' ? 'Right column' : 'Full width'}
-              className={`w-6 h-6 text-[10px] font-bold flex items-center justify-center transition-colors ${
-                currentPos === pos
-                  ? 'bg-primary-600 text-white'
-                  : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {pos === 'left' ? 'L' : pos === 'right' ? 'R' : 'F'}
-            </button>
+        {/* Position selector */}
+        <select
+          value={currentPos}
+          onChange={(e) => { e.stopPropagation(); onSectionChange({ ...section, position: e.target.value as SectionPosition }); }}
+          onClick={(e) => e.stopPropagation()}
+          className="text-[10px] border border-gray-200 rounded-lg px-1.5 py-1 text-gray-500 bg-white focus:border-primary-300 outline-none cursor-pointer shrink-0"
+          title="Layout position"
+        >
+          {(Object.keys(POSITION_LABELS) as SectionPosition[]).map((pos) => (
+            <option key={pos} value={pos}>{POSITION_LABELS[pos]}</option>
           ))}
-        </div>
+        </select>
 
         {/* Collapse + Delete */}
         <div className="flex items-center gap-0.5 shrink-0">
@@ -187,25 +189,24 @@ export default function SectionBlock({
   );
 }
 
-// ── Exported FormattingBar ────────────────────────────────────────────────────
-// Used by the global sticky style panel in the editor page
+// ── FormattingBar (Word-like toolbar) ────────────────────────────────────────
+// Exported and used by the sticky style panel in the editor page.
 
 export function FormattingBar({
   formatting = {},
   onChange,
-  compact = false,
 }: {
   formatting?: SectionFormatting;
-  onChange: (f: SectionFormatting) => void;
-  compact?: boolean;
+  onChange: (patch: Partial<SectionFormatting>) => void;
 }) {
-  const upd = (patch: Partial<SectionFormatting>) => onChange({ ...formatting, ...patch });
+  const upd = (patch: Partial<SectionFormatting>) => onChange(patch);
+  const contentSize = formatting.contentSizePx ?? 12;
 
   return (
-    <div className={`flex flex-wrap items-center gap-x-2 gap-y-1.5 ${compact ? '' : 'px-3 py-2 border-b border-gray-100'}`}>
+    <div className="flex flex-wrap items-center gap-1.5">
 
-      {/* Alignment */}
-      <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden shrink-0">
+      {/* Title alignment */}
+      <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
         {([
           { a: 'left'   as const, Icon: AlignLeft   },
           { a: 'center' as const, Icon: AlignCenter },
@@ -214,39 +215,48 @@ export function FormattingBar({
           <button
             key={a}
             onClick={() => upd({ titleAlign: a })}
+            title={`Align title ${a}`}
             className={`p-1.5 transition-colors ${
-              formatting.titleAlign === a ? 'bg-primary-50 text-primary-600' : 'text-gray-400 hover:text-gray-600'
+              formatting.titleAlign === a ? 'bg-primary-100 text-primary-700' : 'text-gray-400 hover:text-gray-600'
             }`}
-            title={`Align ${a}`}
           >
-            <Icon size={12} />
+            <Icon size={11} />
           </button>
         ))}
       </div>
 
-      {/* Bold / Italic */}
-      <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden shrink-0">
+      {/* Divider */}
+      <div className="w-px h-5 bg-gray-200 shrink-0" />
+
+      {/* Title B / I / U */}
+      <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
         <button
           onClick={() => upd({ titleBold: !formatting.titleBold })}
+          title="Bold title"
           className={`w-7 h-7 text-xs font-black flex items-center justify-center transition-colors ${
-            formatting.titleBold ? 'bg-primary-50 text-primary-600' : 'text-gray-400 hover:text-gray-700'
+            formatting.titleBold ? 'bg-primary-100 text-primary-700' : 'text-gray-400 hover:text-gray-700'
           }`}
-          title="Bold"
         >B</button>
         <button
           onClick={() => upd({ titleItalic: !formatting.titleItalic })}
+          title="Italic title"
           className={`w-7 h-7 text-xs italic font-semibold flex items-center justify-center transition-colors ${
-            formatting.titleItalic ? 'bg-primary-50 text-primary-600' : 'text-gray-400 hover:text-gray-700'
+            formatting.titleItalic ? 'bg-primary-100 text-primary-700' : 'text-gray-400 hover:text-gray-700'
           }`}
-          title="Italic"
         >I</button>
+        <button
+          onClick={() => upd({ titleUnderline: !formatting.titleUnderline })}
+          title="Underline title"
+          className={`w-7 h-7 text-xs underline flex items-center justify-center transition-colors ${
+            formatting.titleUnderline ? 'bg-primary-100 text-primary-700' : 'text-gray-400 hover:text-gray-700'
+          }`}
+        >U</button>
       </div>
 
       {/* Title color */}
-      <label className="flex items-center gap-1 cursor-pointer shrink-0" title="Title color">
-        <span className="text-[9px] text-gray-400 uppercase font-bold">Clr</span>
+      <label className="cursor-pointer shrink-0" title="Title color">
         <div
-          className="w-5 h-5 rounded border border-gray-200 overflow-hidden relative"
+          className="w-6 h-6 rounded border border-gray-200 overflow-hidden relative shadow-sm"
           style={{ backgroundColor: formatting.titleColor ?? '#374151' }}
         >
           <input
@@ -258,37 +268,58 @@ export function FormattingBar({
         </div>
       </label>
 
-      {/* Content size S/M/L */}
-      <div className="flex items-center gap-0.5 shrink-0">
-        <span className="text-[9px] text-gray-400 uppercase font-bold mr-0.5">Size</span>
-        {(['xs', 'sm', 'base'] as const).map((sz, i) => (
-          <button
-            key={sz}
-            onClick={() => upd({ contentSize: sz })}
-            className={`w-6 h-6 text-[10px] rounded-md font-bold transition-colors ${
-              formatting.contentSize === sz
-                ? 'bg-primary-50 text-primary-600'
-                : 'text-gray-400 hover:text-gray-600 bg-white border border-gray-200'
-            }`}
-            title={['Small text', 'Medium text', 'Large text'][i]}
-          >
-            {['S', 'M', 'L'][i]}
-          </button>
-        ))}
+      {/* Divider */}
+      <div className="w-px h-5 bg-gray-200 shrink-0" />
+
+      {/* Content font size numeric */}
+      <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
+        <button
+          onClick={() => upd({ contentSizePx: Math.max(8, contentSize - 1) })}
+          className="px-1.5 py-1 text-gray-500 hover:bg-gray-50 transition-colors"
+          title="Decrease content font size"
+        >
+          <Minus size={10} />
+        </button>
+        <span className="px-1 text-[10px] font-semibold text-gray-700 min-w-[30px] text-center select-none">
+          {contentSize}px
+        </span>
+        <button
+          onClick={() => upd({ contentSizePx: Math.min(20, contentSize + 1) })}
+          className="px-1.5 py-1 text-gray-500 hover:bg-gray-50 transition-colors"
+          title="Increase content font size"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+
+      {/* Content B / I */}
+      <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
+        <button
+          onClick={() => upd({ contentBold: !formatting.contentBold })}
+          title="Bold content text"
+          className={`w-6 h-6 text-[10px] font-black flex items-center justify-center transition-colors ${
+            formatting.contentBold ? 'bg-primary-100 text-primary-700' : 'text-gray-400 hover:text-gray-700'
+          }`}
+        >B</button>
+        <button
+          onClick={() => upd({ contentItalic: !formatting.contentItalic })}
+          title="Italic content text"
+          className={`w-6 h-6 text-[10px] italic font-semibold flex items-center justify-center transition-colors ${
+            formatting.contentItalic ? 'bg-primary-100 text-primary-700' : 'text-gray-400 hover:text-gray-700'
+          }`}
+        >I</button>
       </div>
 
       {/* Line height */}
-      <div className="flex items-center gap-0.5 shrink-0">
+      <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
         {(['tight', 'normal', 'relaxed'] as const).map((lh, i) => (
           <button
             key={lh}
             onClick={() => upd({ lineHeight: lh })}
-            className={`w-6 h-6 text-[9px] rounded-md font-bold transition-colors ${
-              formatting.lineHeight === lh
-                ? 'bg-primary-50 text-primary-600'
-                : 'text-gray-400 hover:text-gray-600 bg-white border border-gray-200'
-            }`}
             title={['Tight spacing', 'Normal spacing', 'Relaxed spacing'][i]}
+            className={`w-6 h-6 text-[9px] font-bold flex items-center justify-center transition-colors ${
+              formatting.lineHeight === lh ? 'bg-primary-100 text-primary-700' : 'text-gray-400 hover:text-gray-600'
+            }`}
           >
             {['≡', '≣', '☰'][i]}
           </button>
@@ -299,10 +330,10 @@ export function FormattingBar({
       {Object.keys(formatting).length > 0 && (
         <button
           onClick={() => onChange({})}
-          className="text-[9px] text-gray-300 hover:text-red-400 transition-colors font-medium"
-          title="Reset formatting"
+          className="text-[9px] text-gray-300 hover:text-red-400 transition-colors font-medium px-1"
+          title="Reset all section formatting"
         >
-          Reset
+          ↺
         </button>
       )}
     </div>

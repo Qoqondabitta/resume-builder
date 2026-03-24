@@ -40,6 +40,7 @@ export interface ResumeData {
   languages?: string[];
   certifications?: string[];
   photoUrl?: string;
+  photoWidth?: number;   // 40–160px; undefined = default per template
 }
 
 export const SAMPLE_RESUME: ResumeData = {

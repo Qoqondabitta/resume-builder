@@ -1,7 +1,7 @@
 'use client';
 
 import { type ResumeData } from '@/types/resume';
-import { type SectionType } from '@/components/editor/SectionBlock';
+import { type SectionType, type SectionPosition } from '@/components/editor/SectionBlock';
 
 const ALL_SECTION_TYPES: SectionType[] = [
   'summary', 'experience', 'education', 'skills', 'projects',
@@ -11,12 +11,17 @@ const ALL_SECTION_TYPES: SectionType[] = [
 interface MinimalistTemplateProps {
   data: ResumeData;
   sectionOrder?: SectionType[];
+  sectionPositions?: Partial<Record<SectionType, SectionPosition>>;
 }
 
-export default function MinimalistTemplate({ data, sectionOrder }: MinimalistTemplateProps) {
+export default function MinimalistTemplate({ data, sectionOrder, sectionPositions }: MinimalistTemplateProps) {
   const ordered = sectionOrder
     ? sectionOrder.filter(t => ALL_SECTION_TYPES.includes(t))
     : ALL_SECTION_TYPES;
+
+  // Determine if any section has a left/right position (enables 2-col grid)
+  const hasColumnLayout = sectionPositions
+    && Object.values(sectionPositions).some(p => p === 'left' || p === 'right');
 
   return (
     <div className="w-full min-h-full bg-white font-sans text-gray-800 px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
@@ -48,16 +53,40 @@ export default function MinimalistTemplate({ data, sectionOrder }: MinimalistTem
         </div>
       </header>
 
-      {ordered.map((type, i) => {
-        const node = renderSection(type, data);
-        if (!node) return null;
-        return (
-          <div key={type}>
-            {i > 0 && <Divider />}
-            {node}
-          </div>
-        );
-      })}
+      {hasColumnLayout ? (
+        // 2-column grid layout when sections have left/right positions
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+          {ordered.map((type) => {
+            const node = renderSection(type, data);
+            if (!node) return null;
+            const pos = sectionPositions?.[type] ?? 'full';
+            return (
+              <div
+                key={type}
+                className={`border-t border-gray-100 pt-4 mt-4 ${
+                  pos === 'full'  ? 'sm:col-span-2' :
+                  pos === 'left'  ? 'sm:col-start-1' :
+                                    'sm:col-start-2'
+                }`}
+              >
+                {node}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        // Default linear layout
+        ordered.map((type, i) => {
+          const node = renderSection(type, data);
+          if (!node) return null;
+          return (
+            <div key={type}>
+              {i > 0 && <Divider />}
+              {node}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 }

@@ -5,11 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Eye, Save, Camera, Plus, X, Check, Minus,
+  AlignLeft, AlignCenter, AlignRight,
 } from 'lucide-react';
 import { SAMPLE_RESUME, type ResumeData } from '@/types/resume';
 import {
   DraggableSection, FormattingBar,
-  type EditorSection, type SectionType, type SectionFormatting,
+  type EditorSection, type SectionType, type SectionPosition, type SectionFormatting,
 } from '@/components/editor/SectionBlock';
 import ModernTemplate from '@/components/templates/ModernTemplate';
 import MinimalistTemplate from '@/components/templates/MinimalistTemplate';
@@ -48,17 +49,13 @@ const ADDABLE_SECTIONS: { type: SectionType; label: string }[] = [
 ];
 
 const FONT_OPTIONS: { label: string; value: string }[] = [
-  { label: 'Default',  value: 'system-ui, sans-serif'                   },
-  { label: 'Serif',    value: 'Georgia, "Times New Roman", serif'        },
-  { label: 'Modern',   value: '"Trebuchet MS", Arial, sans-serif'        },
-  { label: 'Mono',     value: '"Courier New", Courier, monospace'        },
-  { label: 'Elegant',  value: '"Palatino Linotype", Palatino, serif'     },
-  { label: 'Clean',    value: '"Century Gothic", "Futura", sans-serif'   },
+  { label: 'Default',   value: 'system-ui, sans-serif'                   },
+  { label: 'Inter',     value: 'Inter, "Helvetica Neue", Arial, sans-serif' },
+  { label: 'Serif',     value: 'Georgia, "Times New Roman", serif'        },
+  { label: 'Roboto',    value: '"Trebuchet MS", Arial, sans-serif'        },
+  { label: 'Mono',      value: '"Courier New", Courier, monospace'        },
+  { label: 'Elegant',   value: '"Palatino Linotype", Palatino, serif'     },
 ];
-
-const CONTENT_SIZE_MAP: Record<'xs' | 'sm' | 'base', string> = {
-  xs: '10px', sm: '12px', base: '14px',
-};
 
 const LINE_HEIGHT_MAP: Record<'tight' | 'normal' | 'relaxed', string> = {
   tight: '1.3', normal: '1.5', relaxed: '1.8',
@@ -80,14 +77,18 @@ const DEFAULT_GLOBAL_FMT: GlobalFormatting = {
 
 // ── Template renderer ─────────────────────────────────────────────────────────
 
-function renderTemplate(templateId: string, data: ResumeData, sectionOrder: SectionType[]) {
-  const props = { data, sectionOrder };
+function renderTemplate(
+  templateId: string,
+  data: ResumeData,
+  sectionOrder: SectionType[],
+  sectionPositions: Partial<Record<SectionType, SectionPosition>>,
+) {
   switch (templateId) {
-    case 'minimalist': return <MinimalistTemplate {...props} />;
-    case 'creative':   return <CreativeTemplate   {...props} />;
-    case 'corporate':  return <CorporateTemplate  {...props} />;
-    case 'elegant':    return <ElegantTemplate    {...props} />;
-    default:           return <ModernTemplate     {...props} />;
+    case 'minimalist': return <MinimalistTemplate data={data} sectionOrder={sectionOrder} sectionPositions={sectionPositions} />;
+    case 'creative':   return <CreativeTemplate   data={data} sectionOrder={sectionOrder} />;
+    case 'corporate':  return <CorporateTemplate  data={data} sectionOrder={sectionOrder} />;
+    case 'elegant':    return <ElegantTemplate    data={data} sectionOrder={sectionOrder} />;
+    default:           return <ModernTemplate     data={data} sectionOrder={sectionOrder} />;
   }
 }
 
@@ -134,8 +135,14 @@ export default function EditorPage() {
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
   // Derived
-  const sectionOrder   = useMemo(() => sections.map(s => s.type), [sections]);
-  const activeSection  = useMemo(
+  const sectionOrder = useMemo(() => sections.map(s => s.type), [sections]);
+
+  const sectionPositions = useMemo(
+    () => Object.fromEntries(sections.map(s => [s.type, s.position ?? 'full'])) as Partial<Record<SectionType, SectionPosition>>,
+    [sections],
+  );
+
+  const activeSection = useMemo(
     () => sections.find(s => s.id === activeSectionId) ?? null,
     [sections, activeSectionId],
   );
@@ -202,14 +209,14 @@ export default function EditorPage() {
     if (activeSectionId === id) setActiveSectionId(null);
   };
 
-  const updateActiveFormatting = (patch: Partial<SectionFormatting>) => {
+  const updateActiveFormatting = useCallback((patch: Partial<SectionFormatting>) => {
     if (!activeSectionId) return;
     setSections(prev => prev.map(s =>
       s.id === activeSectionId
         ? { ...s, formatting: { ...s.formatting, ...patch } }
         : s,
     ));
-  };
+  }, [activeSectionId]);
 
   // ── CSS for preview ────────────────────────────────────────────────────────
 
@@ -217,44 +224,60 @@ export default function EditorPage() {
     const lines: string[] = [
       `#preview-root { font-family: ${globalFmt.fontFamily} !important; font-size: ${globalFmt.fontSize}px !important; line-height: ${globalFmt.lineHeight} !important; }`,
     ];
+
     sections.forEach(s => {
       const f = s.formatting;
       if (!f || Object.keys(f).length === 0) return;
+      const sel = `#preview-root [data-section="${s.type}"]`;
 
+      // ─ Title rules ─
       const titleRules: string[] = [];
-      if (f.titleAlign)            titleRules.push(`text-align: ${f.titleAlign} !important`);
+      if (f.titleAlign)
+        titleRules.push(`text-align: ${f.titleAlign} !important`);
       if (f.titleBold !== undefined)
         titleRules.push(`font-weight: ${f.titleBold ? '700' : '400'} !important`);
       if (f.titleItalic !== undefined)
         titleRules.push(`font-style: ${f.titleItalic ? 'italic' : 'normal'} !important`);
-      if (f.titleColor)            titleRules.push(`color: ${f.titleColor} !important`);
+      if (f.titleUnderline !== undefined)
+        titleRules.push(`text-decoration: ${f.titleUnderline ? 'underline' : 'none'} !important`);
+      if (f.titleColor)
+        titleRules.push(`color: ${f.titleColor} !important`);
 
       if (titleRules.length) {
+        const r = titleRules.join('; ');
         lines.push(
-          `#preview-root [data-section="${s.type}"] .section-title { ${titleRules.join('; ')} }`,
-          `#preview-root [data-section="${s.type}"] .section-title * { ${titleRules.join('; ')} }`,
+          `${sel} .section-title { ${r} }`,
+          `${sel} .section-title * { ${r} }`,
         );
       }
 
+      // ─ Content rules ─
       const contentRules: string[] = [];
-      if (f.contentSize)
-        contentRules.push(`font-size: ${CONTENT_SIZE_MAP[f.contentSize]} !important`);
+      if (f.contentSizePx)
+        contentRules.push(`font-size: ${f.contentSizePx}px !important`);
+      if (f.contentBold !== undefined)
+        contentRules.push(`font-weight: ${f.contentBold ? '700' : '400'} !important`);
+      if (f.contentItalic !== undefined)
+        contentRules.push(`font-style: ${f.contentItalic ? 'italic' : 'normal'} !important`);
       if (f.lineHeight)
         contentRules.push(`line-height: ${LINE_HEIGHT_MAP[f.lineHeight]} !important`);
 
       if (contentRules.length) {
+        const r = contentRules.join('; ');
         lines.push(
-          `#preview-root [data-section="${s.type}"] .section-content { ${contentRules.join('; ')} }`,
-          `#preview-root [data-section="${s.type}"] .section-content * { ${contentRules.join('; ')} }`,
+          `${sel} .section-content { ${r} }`,
+          `${sel} .section-content * { ${r} }`,
         );
       }
     });
+
     return lines.join('\n');
   }, [globalFmt, sections]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const templateLabel = TEMPLATE_LABELS[templateId] ?? 'Resume';
+  const photoWidth    = data.photoWidth ?? 64;
 
   return (
     <div
@@ -273,7 +296,7 @@ export default function EditorPage() {
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-gray-900 truncate">{templateLabel}</p>
-          <p className="text-[10px] text-gray-400">Drag sections to reorder</p>
+          <p className="text-[10px] text-gray-400">Drag to reorder · Click to select section</p>
         </div>
 
         <button
@@ -328,8 +351,8 @@ export default function EditorPage() {
           onClick={e => e.stopPropagation()}
         >
 
-          {/* ── Sticky style panel ── */}
-          <StickyStylePanel
+          {/* ── Sticky toolbar ── */}
+          <StickyToolbar
             globalFmt={globalFmt}
             onGlobalFmtChange={setGlobalFmt}
             activeSection={activeSection}
@@ -343,13 +366,16 @@ export default function EditorPage() {
             <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Profile</p>
 
-              {/* Photo upload */}
-              <div className="flex items-center gap-3">
+              {/* Photo upload + resize */}
+              <div className="flex items-start gap-3">
                 <label className="relative cursor-pointer group shrink-0">
-                  <div className="w-16 h-16 rounded-2xl bg-gray-200 overflow-hidden flex items-center justify-center">
+                  <div
+                    className="rounded-2xl bg-gray-200 overflow-hidden flex items-center justify-center"
+                    style={{ width: photoWidth, height: photoWidth }}
+                  >
                     {data.photoUrl
                       ? <img src={data.photoUrl} alt="Photo" className="w-full h-full object-cover" />
-                      : <Camera size={20} className="text-gray-400" />
+                      : <Camera size={Math.round(photoWidth * 0.3)} className="text-gray-400" />
                     }
                   </div>
                   <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -357,9 +383,26 @@ export default function EditorPage() {
                   </div>
                   <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                 </label>
-                <div className="flex-1 space-y-1.5">
+
+                <div className="flex-1 space-y-1.5 min-w-0">
                   <ProfileInput value={data.name}  placeholder="Full Name"  onChange={v => setData(d => ({ ...d, name: v }))}  className="font-semibold" />
                   <ProfileInput value={data.title} placeholder="Job Title"  onChange={v => setData(d => ({ ...d, title: v }))} />
+
+                  {/* Photo size slider */}
+                  {data.photoUrl && (
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <span className="text-[10px] text-gray-400 shrink-0">Size</span>
+                      <input
+                        type="range"
+                        min={40}
+                        max={120}
+                        value={photoWidth}
+                        onChange={(e) => setData(d => ({ ...d, photoWidth: Number(e.target.value) }))}
+                        className="flex-1 h-1.5 accent-primary-600 cursor-pointer"
+                      />
+                      <span className="text-[10px] text-gray-400 w-7 text-right shrink-0">{photoWidth}px</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -463,13 +506,12 @@ export default function EditorPage() {
             ${activeTab === 'edit' ? 'hidden md:block' : 'block'}
           `}
         >
-          {/* Injected formatting CSS */}
           <style dangerouslySetInnerHTML={{ __html: previewCSS }} />
 
           <div className="min-h-full p-4 sm:p-6 lg:p-8 flex justify-center">
             <div className="w-full max-w-[800px] bg-white shadow-xl rounded-lg overflow-hidden">
               <div id="preview-root">
-                {renderTemplate(templateId, data, sectionOrder)}
+                {renderTemplate(templateId, data, sectionOrder, sectionPositions)}
               </div>
             </div>
           </div>
@@ -479,9 +521,9 @@ export default function EditorPage() {
   );
 }
 
-// ── Sticky style panel ────────────────────────────────────────────────────────
+// ── Sticky Word-like toolbar ───────────────────────────────────────────────────
 
-function StickyStylePanel({
+function StickyToolbar({
   globalFmt,
   onGlobalFmtChange,
   activeSection,
@@ -498,19 +540,22 @@ function StickyStylePanel({
   const currentFontLabel = FONT_OPTIONS.find(f => f.value === globalFmt.fontFamily)?.label ?? 'Default';
 
   return (
-    <div className="shrink-0 border-b border-gray-100 bg-white shadow-sm z-10">
+    <div className="shrink-0 bg-white border-b border-gray-200 shadow-sm z-10">
 
-      {/* ── Row 1: Global controls ── */}
-      <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
+      {/* ── Row 1: Global typography ── */}
+      <div className="flex items-center gap-1.5 px-3 py-2 flex-wrap">
+
+        {/* Label */}
+        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mr-0.5 shrink-0">Global</span>
 
         {/* Font family picker */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             onClick={() => setShowFonts(v => !v)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors text-gray-700 whitespace-nowrap"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors text-gray-700"
           >
-            <span style={{ fontFamily: globalFmt.fontFamily }} className="font-semibold">Aa</span>
-            <span>{currentFontLabel}</span>
+            <span style={{ fontFamily: globalFmt.fontFamily }} className="font-bold text-sm leading-none">Aa</span>
+            <span className="text-[11px]">{currentFontLabel}</span>
             <span className="text-gray-400 text-[10px]">▾</span>
           </button>
           <AnimatePresence>
@@ -519,19 +564,19 @@ function StickyStylePanel({
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-20 p-1.5 min-w-[140px]"
+                className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-20 p-1.5 min-w-[150px]"
               >
                 {FONT_OPTIONS.map(({ label, value }) => (
                   <button
                     key={value}
                     onClick={() => { upd({ fontFamily: value }); setShowFonts(false); }}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
                       globalFmt.fontFamily === value
                         ? 'bg-primary-50 text-primary-700 font-semibold'
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <span style={{ fontFamily: value }} className="font-bold w-5 text-center">Aa</span>
+                    <span style={{ fontFamily: value }} className="font-bold w-5 text-center text-sm">Aa</span>
                     {label}
                   </button>
                 ))}
@@ -540,43 +585,67 @@ function StickyStylePanel({
           </AnimatePresence>
         </div>
 
-        {/* Font size numeric control */}
-        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white">
+        {/* Base font size numeric */}
+        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
           <button
             onClick={() => upd({ fontSize: Math.max(8, globalFmt.fontSize - 1) })}
             className="px-2 py-1.5 text-gray-500 hover:bg-gray-50 transition-colors"
+            title="Decrease base font size"
           >
             <Minus size={11} />
           </button>
-          <span className="px-2 text-xs font-semibold text-gray-700 min-w-[36px] text-center">
+          <span className="px-2 text-xs font-semibold text-gray-700 min-w-[36px] text-center select-none">
             {globalFmt.fontSize}px
           </span>
           <button
             onClick={() => upd({ fontSize: Math.min(24, globalFmt.fontSize + 1) })}
             className="px-2 py-1.5 text-gray-500 hover:bg-gray-50 transition-colors"
+            title="Increase base font size"
           >
             <Plus size={11} />
           </button>
         </div>
 
         {/* Line height */}
-        <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-white">
+        <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
           {([
-            { label: '≡',  value: 1.3, title: 'Tight'   },
-            { label: '≡ ', value: 1.5, title: 'Normal'  },
-            { label: '☰',  value: 1.8, title: 'Relaxed' },
-          ] as { label: string; value: number; title: string }[]).map(({ label, value, title }) => (
+            { v: 1.3, label: '≡',  title: 'Tight'   },
+            { v: 1.5, label: '≣',  title: 'Normal'  },
+            { v: 1.8, label: '☰',  title: 'Relaxed' },
+          ] as { v: number; label: string; title: string }[]).map(({ v, label, title }) => (
             <button
-              key={value}
-              title={title}
-              onClick={() => upd({ lineHeight: value })}
+              key={v}
+              title={`Line spacing: ${title}`}
+              onClick={() => upd({ lineHeight: v })}
               className={`px-2 py-1.5 text-xs transition-colors ${
-                globalFmt.lineHeight === value
+                globalFmt.lineHeight === v
                   ? 'bg-primary-100 text-primary-700 font-bold'
                   : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
               {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Global alignment buttons */}
+        <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
+          {([
+            { Icon: AlignLeft,   v: 'left'   },
+            { Icon: AlignCenter, v: 'center' },
+            { Icon: AlignRight,  v: 'right'  },
+          ] as const).map(({ Icon, v }) => (
+            <button
+              key={v}
+              title={`Global text align: ${v}`}
+              onClick={() => {
+                if (activeSection) {
+                  onFormattingChange({ titleAlign: v });
+                }
+              }}
+              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Icon size={12} />
             </button>
           ))}
         </div>
@@ -590,23 +659,28 @@ function StickyStylePanel({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="overflow-hidden border-t border-primary-100 bg-primary-50/40"
+            className="overflow-hidden border-t border-primary-100 bg-primary-50/50"
           >
-            <div className="px-3 py-2 flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-bold text-primary-600 uppercase tracking-wider whitespace-nowrap">
+            <div className="px-3 py-2 flex flex-wrap items-center gap-2">
+              {/* Section badge */}
+              <span className="text-[10px] font-bold text-primary-700 bg-primary-100 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
                 {activeSection.title}
               </span>
-              <div className="flex-1">
-                <FormattingBar
-                  compact
-                  formatting={activeSection.formatting ?? {}}
-                  onChange={onFormattingChange}
-                />
-              </div>
+              <FormattingBar
+                formatting={activeSection.formatting ?? {}}
+                onChange={onFormattingChange}
+              />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Hint when no section is selected */}
+      {!activeSection && (
+        <div className="px-3 pb-2">
+          <p className="text-[10px] text-gray-300 italic">Click a section below to style its title and content</p>
+        </div>
+      )}
     </div>
   );
 }
