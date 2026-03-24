@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Plus, Zap, TrendingUp, FileText } from 'lucide-react';
+import { Plus, Zap, TrendingUp, FileText, LayoutTemplate, Linkedin } from 'lucide-react';
 import { useState } from 'react';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -124,37 +124,51 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/40 z-50 flex items-end"
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end"
           onClick={() => setShowNew(false)}
         >
           <motion.div
-            initial={{ y: 300 }}
+            initial={{ y: '100%' }}
             animate={{ y: 0 }}
+            exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white w-full max-w-lg mx-auto rounded-t-3xl p-6 shadow-2xl"
+            className="bg-white w-full max-w-lg mx-auto rounded-t-3xl shadow-2xl max-h-[80vh] flex flex-col"
           >
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Create New Resume</h3>
-            <p className="text-sm text-gray-500 mb-5">Choose a starting point</p>
+            {/* Drag handle */}
+            <div className="flex-shrink-0 pt-4 pb-2 px-6">
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto" />
+            </div>
 
-            {['Blank Resume', 'From Template', 'Import LinkedIn'].map((opt, i) => (
-              <button
-                key={opt}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50 transition-all mb-3 text-left"
-                onClick={() => setShowNew(false)}
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
-                  <FileText size={18} className="text-primary-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{opt}</p>
-                  <p className="text-xs text-gray-400">
-                    {['Start from scratch', 'Pick a professional design', 'Auto-fill from LinkedIn'][i]}
-                  </p>
-                </div>
-              </button>
-            ))}
+            {/* Header */}
+            <div className="flex-shrink-0 px-6 pb-4">
+              <h3 className="text-lg font-bold text-gray-900 mb-0.5">Create New Resume</h3>
+              <p className="text-sm text-gray-500">Choose a starting point</p>
+            </div>
+
+            {/* Scrollable options */}
+            <div className="overflow-y-auto flex-1 px-6 pb-8">
+              {([
+                { label: 'Blank Resume',     desc: 'Start from scratch',           icon: FileText,       bg: 'bg-blue-50',   color: 'text-primary-600'   },
+                { label: 'From Template',    desc: 'Pick a professional design',    icon: LayoutTemplate, bg: 'bg-violet-50', color: 'text-violet-600'    },
+                { label: 'Import LinkedIn',  desc: 'Auto-fill from your profile',   icon: Linkedin,       bg: 'bg-sky-50',    color: 'text-sky-600'       },
+              ] as const).map(({ label, desc, icon: Icon, bg, color }) => (
+                <button
+                  key={label}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50 active:scale-[0.98] transition-all mb-3 text-left"
+                  onClick={() => setShowNew(false)}
+                >
+                  <div className={`w-11 h-11 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+                    <Icon size={20} className={color} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </motion.div>
         </motion.div>
       )}
