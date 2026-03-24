@@ -1,45 +1,68 @@
 'use client';
 
-import {
-  Mail, Phone, MapPin, Globe, Linkedin,
-  Briefcase, Star, FolderGit2, Trophy, Award,
-  type LucideProps,
-} from 'lucide-react';
-import { type ComponentType } from 'react';
+import { Mail, Phone, MapPin, Globe, Linkedin } from 'lucide-react';
 import { type ResumeData } from '@/types/resume';
-import { type SectionType } from '@/components/editor/SectionBlock';
+import { type SectionType, type EditorSection } from '@/components/editor/SectionBlock';
 
-// Sections that live in the main column (can be reordered)
-const MAIN_SECTION_TYPES: SectionType[] = [
-  'summary', 'experience', 'projects', 'achievements', 'certifications', 'custom',
+// ── Defaults ──────────────────────────────────────────────────────────────────
+
+/** Types that live in the sidebar by default (unless user overrides via position) */
+const DEFAULT_SIDEBAR: Set<SectionType> = new Set<SectionType>(['skills', 'education', 'languages']);
+
+const DEFAULT_SECTIONS: EditorSection[] = [
+  { id: 'summary',        type: 'summary',        title: 'Summary'         },
+  { id: 'experience',     type: 'experience',     title: 'Work Experience' },
+  { id: 'education',      type: 'education',      title: 'Education'       },
+  { id: 'skills',         type: 'skills',         title: 'Core Skills'     },
+  { id: 'projects',       type: 'projects',       title: 'Projects'        },
+  { id: 'achievements',   type: 'achievements',   title: 'Achievements'    },
+  { id: 'certifications', type: 'certifications', title: 'Certifications'  },
+  { id: 'languages',      type: 'languages',      title: 'Languages'       },
 ];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface ModernTemplateProps {
   data: ResumeData;
-  sectionOrder?: SectionType[];
+  sections?: EditorSection[];     // from editor — drives everything
+  sectionOrder?: SectionType[];   // legacy fallback
 }
 
-export default function ModernTemplate({ data, sectionOrder }: ModernTemplateProps) {
-  // Determine order of main content sections
-  const orderedMain = sectionOrder
-    ? sectionOrder.filter(t => MAIN_SECTION_TYPES.includes(t))
-    : MAIN_SECTION_TYPES;
+export default function ModernTemplate({ data, sections, sectionOrder }: ModernTemplateProps) {
+  // Build the ordered section list from whichever source is available
+  const effectiveSections: EditorSection[] = sections
+    ?? (sectionOrder
+      ? sectionOrder.map(t => DEFAULT_SECTIONS.find(s => s.type === t) ?? { id: t, type: t, title: t })
+      : DEFAULT_SECTIONS);
+
+  // A section goes to the sidebar when:
+  //  - it has explicit position 'left', OR
+  //  - it has no explicit position AND it's in the default sidebar set
+  const inSidebar = (s: EditorSection) =>
+    s.position === 'left' || (!s.position && DEFAULT_SIDEBAR.has(s.type));
+
+  const sidebarSections = effectiveSections.filter(inSidebar);
+  const mainSections    = effectiveSections.filter(s => !inSidebar(s));
+
+  const photoSize = data.photoWidth ?? 80;
 
   return (
     <div className="flex flex-col sm:flex-row min-h-full w-full font-sans text-gray-800 bg-white">
 
-      {/* ── Sidebar (fixed) ── */}
+      {/* ── Sidebar ── */}
       <aside className="w-full sm:w-[200px] lg:w-[220px] shrink-0 bg-primary-600 text-white flex flex-col">
 
+        {/* Name / title */}
         <div className="px-5 pt-6 pb-5 border-b border-white/20">
           {data.photoUrl && (
             <img
               src={data.photoUrl}
               alt={data.name}
-              className="w-20 h-20 rounded-2xl object-cover border-2 border-white/30 mb-3"
+              style={{ width: photoSize, height: photoSize }}
+              className="rounded-2xl object-cover border-2 border-white/30 mb-3"
             />
           )}
-          <h1 className="text-xl sm:text-2xl font-extrabold leading-tight tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-extrabold leading-tight tracking-tight break-words">
             {data.name}
           </h1>
           <p className="text-blue-200 text-xs sm:text-sm font-medium mt-1">{data.title}</p>
@@ -64,153 +87,121 @@ export default function ModernTemplate({ data, sectionOrder }: ModernTemplatePro
           </div>
         </div>
 
-        {/* Skills */}
-        <div className="px-5 py-4 border-b border-white/20">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-blue-300 mb-2.5">Skills</p>
-          <div className="flex flex-wrap gap-1.5">
-            {data.skills.map((s) => (
-              <span key={s} className="bg-white/15 hover:bg-white/25 transition-colors text-white text-[10px] px-2 py-0.5 rounded-full font-medium cursor-default">
-                {s}
-              </span>
-            ))}
-          </div>
+        {/* Dynamic sidebar sections */}
+        <div className="px-5 py-4 flex-1 space-y-5">
+          {sidebarSections.map(section => {
+            const node = renderSidebarSection(section, data);
+            if (!node) return null;
+            return (
+              <section key={section.id} data-section={section.type}>
+                {node}
+              </section>
+            );
+          })}
         </div>
-
-        {/* Education */}
-        <div className="px-5 py-4 border-b border-white/20">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-blue-300 mb-2.5">Education</p>
-          {data.education.map((e) => (
-            <div key={e.degree} className="mb-3 last:mb-0">
-              <p className="text-[11px] font-semibold leading-snug">{e.degree}</p>
-              <p className="text-blue-200 text-[10px] mt-0.5">{e.school}</p>
-              <p className="text-blue-300 text-[10px]">{e.period}</p>
-              {e.note && <p className="text-blue-200 text-[10px] mt-0.5 italic">{e.note}</p>}
-            </div>
-          ))}
-        </div>
-
-        {/* Languages */}
-        {data.languages && data.languages.length > 0 && (
-          <div className="px-5 py-4">
-            <p className="text-[9px] font-bold uppercase tracking-widest text-blue-300 mb-2.5">Languages</p>
-            {data.languages.map((l) => (
-              <p key={l} className="text-[10px] sm:text-[11px] mb-1">{l}</p>
-            ))}
-          </div>
-        )}
       </aside>
 
-      {/* ── Main content ── */}
-      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-5 sm:space-y-6 min-w-0">
-        {orderedMain.map(type => renderMainSection(type, data))}
+      {/* ── Main column ── */}
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-5 sm:py-7 space-y-5 sm:space-y-6 min-w-0">
+        {mainSections.map(section => {
+          const node = renderMainSection(section, data);
+          if (!node) return null;
+          return (
+            <section key={section.id} data-section={section.type}>
+              {node}
+            </section>
+          );
+        })}
       </main>
     </div>
   );
 }
 
-function renderMainSection(type: SectionType, data: ResumeData): React.ReactNode {
-  switch (type) {
-    case 'summary':
-      return data.summary ? (
-        <section key="summary" data-section="summary">
-          <div className="section-title">
-            <SectionHeader icon={Star} label="Professional Summary" />
-          </div>
-          <div className="section-content">
-            <p className="text-xs sm:text-sm leading-relaxed text-gray-600">{data.summary}</p>
-          </div>
-        </section>
-      ) : null;
+// ── Sidebar section renderers ─────────────────────────────────────────────────
 
-    case 'experience':
-      return data.experience.length > 0 ? (
-        <section key="experience" data-section="experience">
-          <div className="section-title">
-            <SectionHeader icon={Briefcase} label="Experience" />
-          </div>
-          <div className="section-content space-y-5">
-            {data.experience.map((exp) => (
-              <div key={exp.role + exp.company} className="group rounded-lg p-2 -mx-2 hover:bg-primary-50/60 transition-colors">
-                <div className="flex items-start justify-between gap-2 flex-wrap">
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">{exp.role}</p>
-                    <p className="text-[11px] text-primary-600 font-semibold">{exp.company} · {exp.location}</p>
-                  </div>
-                  <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap bg-gray-100 px-2 py-0.5 rounded-full">
-                    {exp.period}
-                  </span>
-                </div>
-                <ul className="mt-2 space-y-1">
-                  {exp.bullets.map((b) => (
-                    <li key={b} className="flex items-start gap-2 text-[11px] sm:text-xs text-gray-600">
-                      <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0" />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
+function renderSidebarSection(section: EditorSection, data: ResumeData): React.ReactNode {
+  switch (section.type) {
+    case 'skills':
+      return data.skills.length > 0 ? (
+        <SidebarBlock label={section.title}>
+          <div className="flex flex-row flex-wrap sm:flex-col gap-x-3 gap-y-0 section-content">
+            {data.skills.map(s => (
+              <div key={s} className="flex items-center gap-1.5 py-0.5 min-w-0">
+                <div className="w-1 h-1 rounded-full bg-blue-300 shrink-0" />
+                <span className="text-[10px] sm:text-[11px] text-blue-100 leading-tight truncate">{s}</span>
               </div>
             ))}
           </div>
-        </section>
+        </SidebarBlock>
       ) : null;
 
-    case 'projects':
-      return data.projects.length > 0 ? (
-        <section key="projects" data-section="projects">
-          <div className="section-title">
-            <SectionHeader icon={FolderGit2} label="Projects" />
-          </div>
-          <div className="section-content space-y-3">
-            {data.projects.map((p) => (
-              <div key={p.name} className="border-l-2 border-primary-200 pl-3 hover:border-primary-400 transition-colors">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-xs sm:text-sm font-bold text-gray-900">{p.name}</p>
-                  {p.link && <span className="text-[10px] text-primary-500">{p.link}</span>}
-                </div>
-                <p className="text-[11px] sm:text-xs text-gray-600 mt-0.5">{p.description}</p>
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {p.tech.map((t) => (
-                    <span key={t} className="text-[10px] bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded font-medium">{t}</span>
-                  ))}
-                </div>
+    case 'education':
+      return data.education.length > 0 ? (
+        <SidebarBlock label={section.title}>
+          <div className="space-y-3 section-content">
+            {data.education.map((e, i) => (
+              <div key={i}>
+                <p className="text-[11px] sm:text-xs font-semibold leading-tight break-words">{e.degree}</p>
+                <p className="text-[10px] sm:text-[11px] text-blue-200 mt-0.5">{e.school}</p>
+                <p className="text-[10px] sm:text-[11px] text-blue-300">{e.period}</p>
+                {e.note && <p className="text-[10px] text-blue-300 italic mt-0.5">{e.note}</p>}
               </div>
             ))}
           </div>
-        </section>
+        </SidebarBlock>
+      ) : null;
+
+    case 'languages':
+      return (data.languages?.length ?? 0) > 0 ? (
+        <SidebarBlock label={section.title}>
+          <div className="flex flex-row flex-wrap sm:flex-col gap-x-3 gap-y-0.5 section-content">
+            {data.languages!.map(l => (
+              <p key={l} className="text-[10px] sm:text-[11px] text-blue-100">{l}</p>
+            ))}
+          </div>
+        </SidebarBlock>
+      ) : null;
+
+    case 'certifications':
+      return (data.certifications?.length ?? 0) > 0 ? (
+        <SidebarBlock label={section.title}>
+          <ul className="space-y-1 section-content">
+            {data.certifications!.map((c, i) => (
+              <li key={i} className="text-[10px] sm:text-[11px] text-blue-100 flex items-start gap-1.5">
+                <span className="text-blue-300 shrink-0 mt-0.5 text-[8px]">◆</span>
+                <span>{c}</span>
+              </li>
+            ))}
+          </ul>
+        </SidebarBlock>
       ) : null;
 
     case 'achievements':
       return data.achievements.length > 0 ? (
-        <section key="achievements" data-section="achievements">
-          <div className="section-title">
-            <SectionHeader icon={Trophy} label="Achievements" />
-          </div>
-          <ul className="section-content space-y-1.5">
-            {data.achievements.map((a) => (
-              <li key={a} className="flex items-start gap-2 text-[11px] sm:text-xs text-gray-600">
-                <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0" />
-                {a}
+        <SidebarBlock label={section.title}>
+          <ul className="space-y-1 section-content">
+            {data.achievements.map((a, i) => (
+              <li key={i} className="text-[10px] sm:text-[11px] text-blue-100 flex items-start gap-1.5">
+                <span className="text-yellow-300 shrink-0 text-[8px] mt-0.5">★</span>
+                <span>{a}</span>
               </li>
             ))}
           </ul>
-        </section>
+        </SidebarBlock>
       ) : null;
 
-    case 'certifications':
-      return data.certifications && data.certifications.length > 0 ? (
-        <section key="certifications" data-section="certifications">
-          <div className="section-title">
-            <SectionHeader icon={Award} label="Certifications" />
-          </div>
-          <ul className="section-content space-y-1.5">
-            {data.certifications.map((c) => (
-              <li key={c} className="flex items-start gap-2 text-[11px] sm:text-xs text-gray-600">
-                <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0" />
-                {c}
+    case 'custom':
+      return (section.customContent?.length ?? 0) > 0 ? (
+        <SidebarBlock label={section.title}>
+          <ul className="space-y-1 section-content">
+            {section.customContent!.map((item, i) => (
+              <li key={i} className="text-[10px] sm:text-[11px] text-blue-100 flex items-start gap-1.5">
+                <span className="text-blue-300 shrink-0 mt-1">·</span>
+                <span>{item}</span>
               </li>
             ))}
           </ul>
-        </section>
+        </SidebarBlock>
       ) : null;
 
     default:
@@ -218,20 +209,182 @@ function renderMainSection(type: SectionType, data: ResumeData): React.ReactNode
   }
 }
 
-interface SectionHeaderProps {
-  icon: ComponentType<LucideProps>;
-  label: string;
+// ── Main section renderers ────────────────────────────────────────────────────
+
+function renderMainSection(section: EditorSection, data: ResumeData): React.ReactNode {
+  switch (section.type) {
+    case 'summary':
+      return data.summary ? (
+        <>
+          <MainHeader label={section.title} />
+          <p className="section-content text-xs sm:text-sm text-gray-600 leading-relaxed">{data.summary}</p>
+        </>
+      ) : null;
+
+    case 'experience':
+      return data.experience.length > 0 ? (
+        <>
+          <MainHeader label={section.title} />
+          <div className="space-y-5 section-content">
+            {data.experience.map((exp, i) => (
+              <div key={i} className="group hover:bg-gray-50 rounded-lg p-2 -mx-2 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900 uppercase tracking-wide">{exp.role}</p>
+                    <p className="text-[11px] sm:text-xs text-primary-500 font-semibold">
+                      {exp.company}{exp.location ? ` · ${exp.location}` : ''}
+                    </p>
+                  </div>
+                  <span className="self-start text-[11px] text-gray-400 border border-gray-200 px-2 py-0.5 rounded whitespace-nowrap">
+                    {exp.period}
+                  </span>
+                </div>
+                <ul className="mt-2 space-y-1.5">
+                  {exp.bullets.map((b, bi) => (
+                    <li key={bi} className="text-[11px] sm:text-xs text-gray-600 flex items-start gap-2">
+                      <span className="mt-[5px] w-1 h-1 rounded-full bg-primary-400 shrink-0" />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : null;
+
+    case 'education':
+      return data.education.length > 0 ? (
+        <>
+          <MainHeader label={section.title} />
+          <div className="space-y-3 section-content">
+            {data.education.map((e, i) => (
+              <div key={i}>
+                <p className="text-xs sm:text-sm font-semibold text-gray-900">{e.degree}</p>
+                <p className="text-[11px] sm:text-xs text-gray-500">{e.school}{e.location ? ` — ${e.location}` : ''}</p>
+                <p className="text-[11px] text-primary-500">{e.period}</p>
+                {e.note && <p className="text-[11px] text-gray-400 italic mt-0.5">{e.note}</p>}
+              </div>
+            ))}
+          </div>
+        </>
+      ) : null;
+
+    case 'skills':
+      return data.skills.length > 0 ? (
+        <>
+          <MainHeader label={section.title} />
+          <div className="flex flex-wrap gap-1.5 section-content">
+            {data.skills.map(s => (
+              <span key={s} className="text-[11px] bg-primary-50 text-primary-700 border border-primary-100 px-2.5 py-1 rounded-full font-medium">
+                {s}
+              </span>
+            ))}
+          </div>
+        </>
+      ) : null;
+
+    case 'projects':
+      return data.projects.length > 0 ? (
+        <>
+          <MainHeader label={section.title} />
+          <div className="space-y-4 section-content">
+            {data.projects.map((p, i) => (
+              <div key={i} className="border-l-2 border-primary-200 pl-3 hover:border-primary-400 transition-colors">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <p className="text-xs sm:text-sm font-bold text-gray-900">{p.name}</p>
+                  {p.link && <span className="text-[11px] text-gray-400 break-all">{p.link}</span>}
+                </div>
+                <p className="text-[11px] sm:text-xs text-gray-600 mt-0.5">{p.description}</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {p.tech.map(t => (
+                    <span key={t} className="text-[10px] bg-primary-50 text-primary-700 border border-primary-100 px-1.5 py-0.5 rounded font-medium">{t}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : null;
+
+    case 'achievements':
+      return data.achievements.length > 0 ? (
+        <>
+          <MainHeader label={section.title} />
+          <ul className="space-y-1.5 section-content">
+            {data.achievements.map((a, i) => (
+              <li key={i} className="text-[11px] sm:text-xs text-gray-600 flex items-start gap-2">
+                <span className="shrink-0 mt-0.5 text-primary-500 font-bold">✓</span>
+                {a}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null;
+
+    case 'certifications':
+      return (data.certifications?.length ?? 0) > 0 ? (
+        <>
+          <MainHeader label={section.title} />
+          <ul className="space-y-1.5 section-content">
+            {data.certifications!.map((c, i) => (
+              <li key={i} className="text-[11px] sm:text-xs text-gray-600 flex items-start gap-2">
+                <span className="shrink-0 mt-0.5 text-primary-500 font-bold">✓</span>
+                {c}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null;
+
+    case 'languages':
+      return (data.languages?.length ?? 0) > 0 ? (
+        <>
+          <MainHeader label={section.title} />
+          <div className="flex flex-wrap gap-1.5 section-content">
+            {data.languages!.map(l => (
+              <span key={l} className="text-[11px] bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{l}</span>
+            ))}
+          </div>
+        </>
+      ) : null;
+
+    case 'custom':
+      return (section.customContent?.length ?? 0) > 0 ? (
+        <>
+          <MainHeader label={section.title} />
+          <ul className="space-y-1.5 section-content">
+            {section.customContent!.map((item, i) => (
+              <li key={i} className="text-[11px] sm:text-xs text-gray-600 flex items-start gap-2">
+                <span className="shrink-0 mt-0.5 w-1 h-1 rounded-full bg-primary-400 mt-1.5" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null;
+
+    default:
+      return null;
+  }
 }
 
-function SectionHeader({ icon, label }: SectionHeaderProps) {
-  const Icon = icon;
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function SidebarBlock({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 mb-3">
-      {Icon && <Icon size={14} className="text-primary-600 shrink-0" />}
-      <h2 className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-primary-600 whitespace-nowrap">
-        {label}
-      </h2>
-      <div className="flex-1 h-px bg-primary-100" />
+    <div>
+      <p className="section-title text-[9px] font-bold uppercase tracking-widest text-blue-300 mb-2">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+function MainHeader({ label }: { label: string }) {
+  return (
+    <div className="section-title mb-2.5 sm:mb-3">
+      <h2 className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-gray-400">{label}</h2>
+      <div className="h-px bg-gray-100 mt-1.5" />
     </div>
   );
 }

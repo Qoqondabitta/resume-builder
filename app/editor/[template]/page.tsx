@@ -10,7 +10,7 @@ import {
 import { SAMPLE_RESUME, type ResumeData } from '@/types/resume';
 import {
   DraggableSection, FormattingBar,
-  type EditorSection, type SectionType, type SectionPosition, type SectionFormatting,
+  type EditorSection, type SectionType, type SectionFormatting,
 } from '@/components/editor/SectionBlock';
 import ModernTemplate from '@/components/templates/ModernTemplate';
 import MinimalistTemplate from '@/components/templates/MinimalistTemplate';
@@ -77,18 +77,13 @@ const DEFAULT_GLOBAL_FMT: GlobalFormatting = {
 
 // ── Template renderer ─────────────────────────────────────────────────────────
 
-function renderTemplate(
-  templateId: string,
-  data: ResumeData,
-  sectionOrder: SectionType[],
-  sectionPositions: Partial<Record<SectionType, SectionPosition>>,
-) {
+function renderTemplate(templateId: string, data: ResumeData, sections: EditorSection[]) {
   switch (templateId) {
-    case 'minimalist': return <MinimalistTemplate data={data} sectionOrder={sectionOrder} sectionPositions={sectionPositions} />;
-    case 'creative':   return <CreativeTemplate   data={data} sectionOrder={sectionOrder} />;
-    case 'corporate':  return <CorporateTemplate  data={data} sectionOrder={sectionOrder} />;
-    case 'elegant':    return <ElegantTemplate    data={data} sectionOrder={sectionOrder} />;
-    default:           return <ModernTemplate     data={data} sectionOrder={sectionOrder} />;
+    case 'minimalist': return <MinimalistTemplate data={data} sections={sections} />;
+    case 'creative':   return <CreativeTemplate   data={data} sections={sections} />;
+    case 'corporate':  return <CorporateTemplate  data={data} sections={sections} />;
+    case 'elegant':    return <ElegantTemplate    data={data} sections={sections} />;
+    default:           return <ModernTemplate     data={data} sections={sections} />;
   }
 }
 
@@ -135,13 +130,6 @@ export default function EditorPage() {
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
   // Derived
-  const sectionOrder = useMemo(() => sections.map(s => s.type), [sections]);
-
-  const sectionPositions = useMemo(
-    () => Object.fromEntries(sections.map(s => [s.type, s.position ?? 'full'])) as Partial<Record<SectionType, SectionPosition>>,
-    [sections],
-  );
-
   const activeSection = useMemo(
     () => sections.find(s => s.id === activeSectionId) ?? null,
     [sections, activeSectionId],
@@ -228,7 +216,7 @@ export default function EditorPage() {
     sections.forEach(s => {
       const f = s.formatting;
       if (!f || Object.keys(f).length === 0) return;
-      const sel = `#preview-root [data-section="${s.type}"]`;
+      const sel = `#preview-root [data-section="${s.id}"]`;
 
       // ─ Title rules ─
       const titleRules: string[] = [];
@@ -511,7 +499,7 @@ export default function EditorPage() {
           <div className="min-h-full p-4 sm:p-6 lg:p-8 flex justify-center">
             <div className="w-full max-w-[800px] bg-white shadow-xl rounded-lg overflow-hidden">
               <div id="preview-root">
-                {renderTemplate(templateId, data, sectionOrder, sectionPositions)}
+                {renderTemplate(templateId, data, sections)}
               </div>
             </div>
           </div>
