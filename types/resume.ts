@@ -4,6 +4,7 @@ export interface Experience {
   location: string;
   period: string;
   bullets: string[];
+  logoUrl?: string;
 }
 
 export interface Education {
@@ -19,6 +20,7 @@ export interface Project {
   description: string;
   tech: string[];
   link?: string;
+  logoUrl?: string;
 }
 
 export interface ResumeData {
@@ -36,6 +38,8 @@ export interface ResumeData {
   projects: Project[];
   achievements: string[];
   languages?: string[];
+  certifications?: string[];
+  photoUrl?: string;
 }
 
 export const SAMPLE_RESUME: ResumeData = {

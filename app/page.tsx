@@ -1,19 +1,19 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Plus, Zap, TrendingUp, FileText, LayoutTemplate, Linkedin, Code2, BarChart2, Palette, Megaphone, Database, Sparkles } from 'lucide-react';
+import { Plus, Zap, TrendingUp, FileText, LayoutTemplate, Linkedin, Code2, BarChart2, Palette, Megaphone, Database, Sparkles, Eye, PenLine } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 
 const TEMPLATES = [
-  { name: 'Modern',      tag: 'Two-column',  icon: Code2,        from: 'from-blue-500',    to: 'to-blue-700',    href: '/resume/modern'     },
-  { name: 'Minimalist',  tag: 'Clean',       icon: BarChart2,    from: 'from-slate-400',   to: 'to-slate-600',   href: '/resume/minimalist' },
-  { name: 'Creative',    tag: 'Bold',        icon: Palette,      from: 'from-violet-500',  to: 'to-blue-600',    href: '/resume/creative'   },
-  { name: 'Corporate',   tag: 'Formal',      icon: Megaphone,    from: 'from-slate-600',   to: 'to-slate-800',   href: '/resume/corporate'  },
-  { name: 'Elegant',     tag: 'Serif',       icon: Sparkles,     from: 'from-amber-400',   to: 'to-orange-500',  href: '/resume/elegant'    },
-  { name: 'Data Sci.',   tag: 'Analytics',   icon: Database,     from: 'from-emerald-500', to: 'to-emerald-700', href: '/resume/modern'     },
+  { name: 'Modern',     tag: 'Two-column', icon: Code2,     from: 'from-blue-500',    to: 'to-blue-700',    id: 'modern'     },
+  { name: 'Minimalist', tag: 'Clean',      icon: BarChart2, from: 'from-slate-400',   to: 'to-slate-600',   id: 'minimalist' },
+  { name: 'Creative',   tag: 'Bold',       icon: Palette,   from: 'from-violet-500',  to: 'to-blue-600',    id: 'creative'   },
+  { name: 'Corporate',  tag: 'Formal',     icon: Megaphone, from: 'from-slate-600',   to: 'to-slate-800',   id: 'corporate'  },
+  { name: 'Elegant',    tag: 'Serif',      icon: Sparkles,  from: 'from-amber-400',   to: 'to-orange-500',  id: 'elegant'    },
+  { name: 'Data Sci.',  tag: 'Analytics',  icon: Database,  from: 'from-emerald-500', to: 'to-emerald-700', id: 'modern'     },
 ];
 
 const STATS = [
@@ -88,32 +88,48 @@ export default function DashboardPage() {
           <button className="text-xs text-primary-600 font-semibold hover:underline">View all</button>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {TEMPLATES.map(({ name, tag, icon: Icon, from, to, href }) => (
+          {TEMPLATES.map(({ name, tag, icon: Icon, from, to, id }) => (
             <motion.div
-              key={name}
+              key={name + id}
               whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.97 }}
+              whileTap={{ scale: 0.98 }}
               className="bg-white rounded-2xl shadow-card overflow-hidden flex flex-col"
             >
-              {/* Thumbnail — tappable to preview */}
+              {/* Thumbnail — tap to preview */}
               <button
-                onClick={() => router.push(href)}
-                className={`bg-gradient-to-br ${from} ${to} h-24 flex items-center justify-center w-full`}
+                onClick={() => router.push(`/resume/${id}`)}
+                className={`bg-gradient-to-br ${from} ${to} h-24 flex items-center justify-center w-full group`}
+                title="Preview template"
               >
-                <Icon size={36} className="text-white/90" />
+                <Icon size={32} className="text-white/80 group-hover:scale-110 transition-transform" />
               </button>
-              {/* Info + action */}
-              <div className="p-3 flex flex-col gap-2 flex-1">
+
+              {/* Info */}
+              <div className="px-3 pt-2.5 pb-3 flex flex-col gap-2.5 flex-1">
                 <div>
                   <p className="text-[13px] font-semibold text-gray-900 leading-tight">{name}</p>
                   <span className="inline-block mt-0.5 text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{tag}</span>
                 </div>
-                <button
-                  onClick={() => router.push(href)}
-                  className="w-full mt-auto text-[11px] font-semibold text-primary-600 border border-primary-200 rounded-xl py-1.5 hover:bg-primary-50 active:scale-95 transition-all"
-                >
-                  Use Template
-                </button>
+
+                {/* Dual action buttons */}
+                <div className="flex gap-2 mt-auto">
+                  <button
+                    onClick={() => router.push(`/resume/${id}`)}
+                    title="Preview template"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-gray-500 border border-gray-200 rounded-xl hover:border-primary-200 hover:text-primary-600 hover:bg-primary-50 active:scale-95 transition-all"
+                  >
+                    <Eye size={12} />
+                    <span>View</span>
+                  </button>
+                  <button
+                    onClick={() => router.push(`/editor/${id}`)}
+                    title="Edit this template"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-white bg-primary-600 rounded-xl hover:bg-primary-700 active:scale-95 transition-all"
+                  >
+                    <PenLine size={12} />
+                    <span>Edit</span>
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))}
