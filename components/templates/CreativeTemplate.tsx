@@ -1,0 +1,155 @@
+'use client';
+
+import { Mail, Phone, MapPin, Globe, Linkedin } from 'lucide-react';
+import { ResumeData } from '@/types/resume';
+
+const ACCENT = 'from-violet-600 to-blue-600';
+
+export default function CreativeTemplate({ data }: { data: ResumeData }) {
+  return (
+    <div className="w-full min-h-full bg-gray-50 font-sans text-gray-800">
+
+      {/* ── Bold gradient header ── */}
+      <header className={`bg-gradient-to-r ${ACCENT} text-white px-10 py-10`}>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-5xl font-black tracking-tight leading-none">{data.name}</h1>
+            <p className="text-violet-200 text-lg font-light mt-2">{data.title}</p>
+          </div>
+          <div className="space-y-1.5 text-right">
+            {[
+              { icon: Mail,     val: data.email    },
+              { icon: Phone,    val: data.phone    },
+              { icon: MapPin,   val: data.location },
+              ...(data.website  ? [{ icon: Globe,    val: data.website  }] : []),
+              ...(data.linkedin ? [{ icon: Linkedin, val: data.linkedin }] : []),
+            ].map(({ icon: Icon, val }) => (
+              <div key={val} className="flex items-center justify-end gap-1.5 text-violet-100 text-xs">
+                <span>{val}</span>
+                <Icon size={11} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <div className="px-10 py-8 space-y-8">
+
+        {/* Summary */}
+        <section>
+          <CreativeSectionTitle label="About Me" />
+          <p className="text-sm text-gray-600 leading-relaxed">{data.summary}</p>
+        </section>
+
+        {/* Skills */}
+        <section>
+          <CreativeSectionTitle label="Skills & Technologies" />
+          <div className="flex flex-wrap gap-2">
+            {data.skills.map((s, i) => (
+              <span
+                key={s}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
+                  i % 4 === 0 ? 'bg-violet-100 text-violet-700' :
+                  i % 4 === 1 ? 'bg-blue-100 text-blue-700' :
+                  i % 4 === 2 ? 'bg-pink-100 text-pink-700' :
+                               'bg-emerald-100 text-emerald-700'
+                }`}
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* Experience */}
+        <section>
+          <CreativeSectionTitle label="Work Experience" />
+          <div className="space-y-5">
+            {data.experience.map((exp, i) => (
+              <div key={exp.role + exp.company} className="relative pl-5 border-l-2 border-violet-200">
+                {/* Dot on timeline */}
+                <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-white border-2 border-violet-400 flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+                </div>
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{exp.role}</p>
+                    <p className="text-xs font-semibold text-violet-600">{exp.company}</p>
+                    <p className="text-[11px] text-gray-400">{exp.location}</p>
+                  </div>
+                  <span className="text-[11px] bg-violet-50 text-violet-600 font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {exp.period}
+                  </span>
+                </div>
+                <ul className="mt-2 space-y-1">
+                  {exp.bullets.map((b) => (
+                    <li key={b} className="text-xs text-gray-600 flex gap-2">
+                      <span className="text-violet-400 shrink-0">›</span>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Two-column: Projects + Education */}
+        <div className="grid sm:grid-cols-2 gap-6">
+          <section>
+            <CreativeSectionTitle label="Projects" />
+            <div className="space-y-4">
+              {data.projects.map((p) => (
+                <div key={p.name} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <p className="text-sm font-bold text-gray-900">{p.name}</p>
+                  {p.link && <p className="text-[10px] text-violet-500 mt-0.5">{p.link}</p>}
+                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">{p.description}</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {p.tech.map((t) => (
+                      <span key={t} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium">{t}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className="space-y-6">
+            <section>
+              <CreativeSectionTitle label="Education" />
+              {data.education.map((e) => (
+                <div key={e.degree} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <p className="text-sm font-bold text-gray-900">{e.degree}</p>
+                  <p className="text-xs text-violet-600 font-semibold mt-0.5">{e.school}</p>
+                  <p className="text-[11px] text-gray-400">{e.period}</p>
+                  {e.note && <p className="text-[11px] text-gray-500 mt-1 italic">{e.note}</p>}
+                </div>
+              ))}
+            </section>
+
+            <section>
+              <CreativeSectionTitle label="Achievements" />
+              <div className="space-y-2">
+                {data.achievements.map((a) => (
+                  <div key={a} className="flex gap-2 items-start">
+                    <span className="text-yellow-500 shrink-0 text-sm leading-none mt-0.5">★</span>
+                    <p className="text-xs text-gray-600">{a}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CreativeSectionTitle({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <h2 className="text-xs font-black uppercase tracking-widest text-gray-900">{label}</h2>
+      <div className={`flex-1 h-0.5 bg-gradient-to-r ${ACCENT} opacity-30 rounded-full`} />
+    </div>
+  );
+}

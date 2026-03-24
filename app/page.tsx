@@ -3,16 +3,17 @@
 import { motion } from 'framer-motion';
 import { Plus, Zap, TrendingUp, FileText, LayoutTemplate, Linkedin, Code2, BarChart2, Palette, Megaphone, Database, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 
 const TEMPLATES = [
-  { name: 'Software Engineer',  tag: 'Tech',        icon: Code2,        from: 'from-blue-500',   to: 'to-blue-700'   },
-  { name: 'Product Manager',    tag: 'Management',  icon: BarChart2,    from: 'from-violet-500', to: 'to-violet-700' },
-  { name: 'UX Designer',        tag: 'Design',      icon: Palette,      from: 'from-pink-500',   to: 'to-pink-700'   },
-  { name: 'Marketing Pro',      tag: 'Marketing',   icon: Megaphone,    from: 'from-orange-500', to: 'to-orange-700' },
-  { name: 'Data Scientist',     tag: 'Analytics',   icon: Database,     from: 'from-emerald-500',to: 'to-emerald-700'},
-  { name: 'Creative Director',  tag: 'Creative',    icon: Sparkles,     from: 'from-teal-500',   to: 'to-teal-700'   },
+  { name: 'Modern',      tag: 'Two-column',  icon: Code2,        from: 'from-blue-500',    to: 'to-blue-700',    href: '/resume/modern'     },
+  { name: 'Minimalist',  tag: 'Clean',       icon: BarChart2,    from: 'from-slate-400',   to: 'to-slate-600',   href: '/resume/minimalist' },
+  { name: 'Creative',    tag: 'Bold',        icon: Palette,      from: 'from-violet-500',  to: 'to-blue-600',    href: '/resume/creative'   },
+  { name: 'Corporate',   tag: 'Formal',      icon: Megaphone,    from: 'from-slate-600',   to: 'to-slate-800',   href: '/resume/corporate'  },
+  { name: 'Elegant',     tag: 'Serif',       icon: Sparkles,     from: 'from-amber-400',   to: 'to-orange-500',  href: '/resume/elegant'    },
+  { name: 'Data Sci.',   tag: 'Analytics',   icon: Database,     from: 'from-emerald-500', to: 'to-emerald-700', href: '/resume/modern'     },
 ];
 
 const STATS = [
@@ -23,6 +24,7 @@ const STATS = [
 
 export default function DashboardPage() {
   const [showNew, setShowNew] = useState(false);
+  const router = useRouter();
 
   return (
     <div className="space-y-5 py-4">
@@ -86,17 +88,20 @@ export default function DashboardPage() {
           <button className="text-xs text-primary-600 font-semibold hover:underline">View all</button>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {TEMPLATES.map(({ name, tag, icon: Icon, from, to }) => (
+          {TEMPLATES.map(({ name, tag, icon: Icon, from, to, href }) => (
             <motion.div
               key={name}
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.97 }}
               className="bg-white rounded-2xl shadow-card overflow-hidden flex flex-col"
             >
-              {/* Thumbnail */}
-              <div className={`bg-gradient-to-br ${from} ${to} h-24 flex items-center justify-center`}>
+              {/* Thumbnail — tappable to preview */}
+              <button
+                onClick={() => router.push(href)}
+                className={`bg-gradient-to-br ${from} ${to} h-24 flex items-center justify-center w-full`}
+              >
                 <Icon size={36} className="text-white/90" />
-              </div>
+              </button>
               {/* Info + action */}
               <div className="p-3 flex flex-col gap-2 flex-1">
                 <div>
@@ -104,7 +109,7 @@ export default function DashboardPage() {
                   <span className="inline-block mt-0.5 text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{tag}</span>
                 </div>
                 <button
-                  onClick={() => setShowNew(true)}
+                  onClick={() => router.push(href)}
                   className="w-full mt-auto text-[11px] font-semibold text-primary-600 border border-primary-200 rounded-xl py-1.5 hover:bg-primary-50 active:scale-95 transition-all"
                 >
                   Use Template
