@@ -9,6 +9,15 @@ export default function ElegantTemplate({ data }: { data: ResumeData; sectionOrd
 
       {/* ── Centered header ── */}
       <header className="text-center mb-2">
+        {data.photoUrl && (
+          <div className="flex justify-center mb-3">
+            <img
+              src={data.photoUrl}
+              alt={data.name}
+              className="w-20 h-20 rounded-full object-cover border-4 border-amber-100 shadow-sm"
+            />
+          </div>
+        )}
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-[0.1em] sm:tracking-[0.15em] uppercase text-gray-900 break-words">
           {data.name}
         </h1>

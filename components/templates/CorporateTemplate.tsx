@@ -10,25 +10,36 @@ export default function CorporateTemplate({ data }: { data: ResumeData; sectionO
 
       {/* ── Dark navy header ── */}
       <header className="bg-slate-800 text-white px-4 sm:px-8 lg:px-10 py-6 sm:py-8">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-wide uppercase break-words">
-          {data.name}
-        </h1>
-        <p className="text-slate-300 text-xs sm:text-sm font-medium tracking-widest uppercase mt-1">
-          {data.title}
-        </p>
-        <div className="flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-1.5 mt-3 sm:mt-4">
-          {[
-            { icon: Mail,     val: data.email    },
-            { icon: Phone,    val: data.phone    },
-            { icon: MapPin,   val: data.location },
-            ...(data.website  ? [{ icon: Globe,    val: data.website  }] : []),
-            ...(data.linkedin ? [{ icon: Linkedin, val: data.linkedin }] : []),
-          ].map(({ icon: Icon, val }) => (
-            <div key={val} className="flex items-center gap-1.5 text-slate-300 text-[11px] sm:text-xs">
-              <Icon size={11} className="shrink-0" />
-              <span>{val}</span>
+        <div className="flex items-center gap-4">
+          {data.photoUrl && (
+            <img
+              src={data.photoUrl}
+              alt={data.name}
+              className="w-16 h-16 rounded-full object-cover border-2 border-slate-600 shrink-0"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-wide uppercase break-words">
+              {data.name}
+            </h1>
+            <p className="text-slate-300 text-xs sm:text-sm font-medium tracking-widest uppercase mt-1">
+              {data.title}
+            </p>
+            <div className="flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-1.5 mt-3 sm:mt-4">
+              {[
+                { icon: Mail,     val: data.email    },
+                { icon: Phone,    val: data.phone    },
+                { icon: MapPin,   val: data.location },
+                ...(data.website  ? [{ icon: Globe,    val: data.website  }] : []),
+                ...(data.linkedin ? [{ icon: Linkedin, val: data.linkedin }] : []),
+              ].map(({ icon: Icon, val }) => (
+                <div key={val} className="flex items-center gap-1.5 text-slate-300 text-[11px] sm:text-xs">
+                  <Icon size={11} className="shrink-0" />
+                  <span>{val}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </header>
 

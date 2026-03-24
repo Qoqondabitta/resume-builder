@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Eye, Save, Camera, Plus, X, Check, ChevronDown, ChevronUp, Type,
+  ArrowLeft, Eye, Save, Camera, Plus, X, Check, Minus,
 } from 'lucide-react';
 import { SAMPLE_RESUME, type ResumeData } from '@/types/resume';
 import {
-  DraggableSection, type EditorSection, type SectionType,
+  DraggableSection, FormattingBar,
+  type EditorSection, type SectionType, type SectionFormatting,
 } from '@/components/editor/SectionBlock';
 import ModernTemplate from '@/components/templates/ModernTemplate';
 import MinimalistTemplate from '@/components/templates/MinimalistTemplate';
@@ -46,13 +47,13 @@ const ADDABLE_SECTIONS: { type: SectionType; label: string }[] = [
   { type: 'custom',         label: 'Custom Section' },
 ];
 
-const FONT_OPTIONS: { label: string; value: string; preview: string }[] = [
-  { label: 'Default',    value: 'system-ui, sans-serif',                      preview: 'Aa' },
-  { label: 'Serif',      value: 'Georgia, "Times New Roman", serif',          preview: 'Aa' },
-  { label: 'Modern',     value: '"Trebuchet MS", Arial, sans-serif',          preview: 'Aa' },
-  { label: 'Mono',       value: '"Courier New", Courier, monospace',          preview: 'Aa' },
-  { label: 'Elegant',    value: '"Palatino Linotype", Palatino, serif',       preview: 'Aa' },
-  { label: 'Clean',      value: '"Century Gothic", "Futura", sans-serif',     preview: 'Aa' },
+const FONT_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Default',  value: 'system-ui, sans-serif'                   },
+  { label: 'Serif',    value: 'Georgia, "Times New Roman", serif'        },
+  { label: 'Modern',   value: '"Trebuchet MS", Arial, sans-serif'        },
+  { label: 'Mono',     value: '"Courier New", Courier, monospace'        },
+  { label: 'Elegant',  value: '"Palatino Linotype", Palatino, serif'     },
+  { label: 'Clean',    value: '"Century Gothic", "Futura", sans-serif'   },
 ];
 
 const CONTENT_SIZE_MAP: Record<'xs' | 'sm' | 'base', string> = {
@@ -79,11 +80,7 @@ const DEFAULT_GLOBAL_FMT: GlobalFormatting = {
 
 // ── Template renderer ─────────────────────────────────────────────────────────
 
-function renderTemplate(
-  templateId: string,
-  data: ResumeData,
-  sectionOrder: SectionType[],
-) {
+function renderTemplate(templateId: string, data: ResumeData, sectionOrder: SectionType[]) {
   const props = { data, sectionOrder };
   switch (templateId) {
     case 'minimalist': return <MinimalistTemplate {...props} />;
@@ -97,8 +94,8 @@ function renderTemplate(
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function EditorPage() {
-  const params  = useParams();
-  const router  = useRouter();
+  const params      = useParams();
+  const router      = useRouter();
   const templateId  = (params?.template as string) ?? 'modern';
   const storageKey  = `resume-editor-${templateId}`;
 
@@ -131,12 +128,17 @@ export default function EditorPage() {
     return DEFAULT_GLOBAL_FMT;
   });
 
-  const [activeTab,      setActiveTab]      = useState<'edit' | 'preview'>('edit');
-  const [saveStatus,     setSaveStatus]     = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [showAddSection, setShowAddSection] = useState(false);
+  const [activeTab,       setActiveTab]       = useState<'edit' | 'preview'>('edit');
+  const [saveStatus,      setSaveStatus]      = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [showAddSection,  setShowAddSection]  = useState(false);
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
-  // Derived section order (types only, for templates)
-  const sectionOrder = useMemo(() => sections.map(s => s.type), [sections]);
+  // Derived
+  const sectionOrder   = useMemo(() => sections.map(s => s.type), [sections]);
+  const activeSection  = useMemo(
+    () => sections.find(s => s.id === activeSectionId) ?? null,
+    [sections, activeSectionId],
+  );
 
   // ── Auto-save (debounced) ──────────────────────────────────────────────────
 
@@ -195,8 +197,19 @@ export default function EditorPage() {
   const updateSection = (id: string, updated: EditorSection) =>
     setSections(prev => prev.map(s => s.id === id ? updated : s));
 
-  const deleteSection = (id: string) =>
+  const deleteSection = (id: string) => {
     setSections(prev => prev.filter(s => s.id !== id));
+    if (activeSectionId === id) setActiveSectionId(null);
+  };
+
+  const updateActiveFormatting = (patch: Partial<SectionFormatting>) => {
+    if (!activeSectionId) return;
+    setSections(prev => prev.map(s =>
+      s.id === activeSectionId
+        ? { ...s, formatting: { ...s.formatting, ...patch } }
+        : s,
+    ));
+  };
 
   // ── CSS for preview ────────────────────────────────────────────────────────
 
@@ -209,12 +222,12 @@ export default function EditorPage() {
       if (!f || Object.keys(f).length === 0) return;
 
       const titleRules: string[] = [];
-      if (f.titleAlign)   titleRules.push(`text-align: ${f.titleAlign} !important`);
+      if (f.titleAlign)            titleRules.push(`text-align: ${f.titleAlign} !important`);
       if (f.titleBold !== undefined)
         titleRules.push(`font-weight: ${f.titleBold ? '700' : '400'} !important`);
       if (f.titleItalic !== undefined)
         titleRules.push(`font-style: ${f.titleItalic ? 'italic' : 'normal'} !important`);
-      if (f.titleColor)   titleRules.push(`color: ${f.titleColor} !important`);
+      if (f.titleColor)            titleRules.push(`color: ${f.titleColor} !important`);
 
       if (titleRules.length) {
         lines.push(
@@ -244,12 +257,15 @@ export default function EditorPage() {
   const templateLabel = TEMPLATE_LABELS[templateId] ?? 'Resume';
 
   return (
-    <div className="fixed inset-0 z-[100] bg-gray-100 flex flex-col">
+    <div
+      className="fixed inset-0 z-[100] bg-gray-100 flex flex-col"
+      onClick={() => setActiveSectionId(null)}
+    >
 
       {/* ── Top bar ── */}
       <header className="shrink-0 h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-3 shadow-sm">
         <button
-          onClick={() => router.back()}
+          onClick={(e) => { e.stopPropagation(); router.back(); }}
           className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-500"
         >
           <ArrowLeft size={18} />
@@ -261,7 +277,7 @@ export default function EditorPage() {
         </div>
 
         <button
-          onClick={handleSave}
+          onClick={(e) => { e.stopPropagation(); handleSave(); }}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all ${
             saveStatus === 'saved'
               ? 'border-green-300 bg-green-50 text-green-600'
@@ -275,7 +291,7 @@ export default function EditorPage() {
         </button>
 
         <button
-          onClick={() => router.push(`/resume/${templateId}`)}
+          onClick={(e) => { e.stopPropagation(); router.push(`/resume/${templateId}`); }}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
         >
           <Eye size={13} />
@@ -288,7 +304,7 @@ export default function EditorPage() {
         {(['edit', 'preview'] as const).map(tab => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={(e) => { e.stopPropagation(); setActiveTab(tab); }}
             className={`flex-1 py-2.5 text-xs font-semibold capitalize transition-colors ${
               activeTab === tab
                 ? 'text-primary-600 border-b-2 border-primary-600'
@@ -309,11 +325,19 @@ export default function EditorPage() {
             w-full md:w-[420px] shrink-0 flex flex-col overflow-hidden bg-white border-r border-gray-200
             ${activeTab === 'preview' ? 'hidden md:flex' : 'flex'}
           `}
+          onClick={e => e.stopPropagation()}
         >
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
 
-            {/* Global formatting panel */}
-            <GlobalFormattingPanel formatting={globalFmt} onChange={setGlobalFmt} />
+          {/* ── Sticky style panel ── */}
+          <StickyStylePanel
+            globalFmt={globalFmt}
+            onGlobalFmtChange={setGlobalFmt}
+            activeSection={activeSection}
+            onFormattingChange={updateActiveFormatting}
+          />
+
+          {/* ── Scrollable content ── */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
 
             {/* Profile card */}
             <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
@@ -370,6 +394,8 @@ export default function EditorPage() {
                   onRename={title => updateSection(section.id, { ...section, title })}
                   onDelete={() => deleteSection(section.id)}
                   onSectionChange={updated => updateSection(section.id, updated)}
+                  isActive={section.id === activeSectionId}
+                  onActivate={() => setActiveSectionId(section.id)}
                 />
               ))}
             </Reorder.Group>
@@ -453,112 +479,130 @@ export default function EditorPage() {
   );
 }
 
-// ── Global formatting panel ───────────────────────────────────────────────────
+// ── Sticky style panel ────────────────────────────────────────────────────────
 
-function GlobalFormattingPanel({
-  formatting,
-  onChange,
+function StickyStylePanel({
+  globalFmt,
+  onGlobalFmtChange,
+  activeSection,
+  onFormattingChange,
 }: {
-  formatting: GlobalFormatting;
-  onChange: (f: GlobalFormatting) => void;
+  globalFmt: GlobalFormatting;
+  onGlobalFmtChange: (f: GlobalFormatting) => void;
+  activeSection: EditorSection | null;
+  onFormattingChange: (patch: Partial<SectionFormatting>) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const upd = (patch: Partial<GlobalFormatting>) => onChange({ ...formatting, ...patch });
+  const [showFonts, setShowFonts] = useState(false);
+  const upd = (patch: Partial<GlobalFormatting>) => onGlobalFmtChange({ ...globalFmt, ...patch });
+
+  const currentFontLabel = FONT_OPTIONS.find(f => f.value === globalFmt.fontFamily)?.label ?? 'Default';
 
   return (
-    <div className="bg-gray-50 rounded-2xl overflow-hidden border border-gray-100">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-4 py-3"
-      >
-        <div className="flex items-center gap-2">
-          <Type size={14} className="text-gray-500" />
-          <span className="text-xs font-bold text-gray-700">Typography & Style</span>
-        </div>
-        {open ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-      </button>
+    <div className="shrink-0 border-b border-gray-100 bg-white shadow-sm z-10">
 
+      {/* ── Row 1: Global controls ── */}
+      <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
+
+        {/* Font family picker */}
+        <div className="relative">
+          <button
+            onClick={() => setShowFonts(v => !v)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors text-gray-700 whitespace-nowrap"
+          >
+            <span style={{ fontFamily: globalFmt.fontFamily }} className="font-semibold">Aa</span>
+            <span>{currentFontLabel}</span>
+            <span className="text-gray-400 text-[10px]">▾</span>
+          </button>
+          <AnimatePresence>
+            {showFonts && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-20 p-1.5 min-w-[140px]"
+              >
+                {FONT_OPTIONS.map(({ label, value }) => (
+                  <button
+                    key={value}
+                    onClick={() => { upd({ fontFamily: value }); setShowFonts(false); }}
+                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+                      globalFmt.fontFamily === value
+                        ? 'bg-primary-50 text-primary-700 font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span style={{ fontFamily: value }} className="font-bold w-5 text-center">Aa</span>
+                    {label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Font size numeric control */}
+        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white">
+          <button
+            onClick={() => upd({ fontSize: Math.max(8, globalFmt.fontSize - 1) })}
+            className="px-2 py-1.5 text-gray-500 hover:bg-gray-50 transition-colors"
+          >
+            <Minus size={11} />
+          </button>
+          <span className="px-2 text-xs font-semibold text-gray-700 min-w-[36px] text-center">
+            {globalFmt.fontSize}px
+          </span>
+          <button
+            onClick={() => upd({ fontSize: Math.min(24, globalFmt.fontSize + 1) })}
+            className="px-2 py-1.5 text-gray-500 hover:bg-gray-50 transition-colors"
+          >
+            <Plus size={11} />
+          </button>
+        </div>
+
+        {/* Line height */}
+        <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-white">
+          {([
+            { label: '≡',  value: 1.3, title: 'Tight'   },
+            { label: '≡ ', value: 1.5, title: 'Normal'  },
+            { label: '☰',  value: 1.8, title: 'Relaxed' },
+          ] as { label: string; value: number; title: string }[]).map(({ label, value, title }) => (
+            <button
+              key={value}
+              title={title}
+              onClick={() => upd({ lineHeight: value })}
+              className={`px-2 py-1.5 text-xs transition-colors ${
+                globalFmt.lineHeight === value
+                  ? 'bg-primary-100 text-primary-700 font-bold'
+                  : 'text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Row 2: Active section formatting ── */}
       <AnimatePresence>
-        {open && (
+        {activeSection && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            transition={{ duration: 0.15 }}
+            className="overflow-hidden border-t border-primary-100 bg-primary-50/40"
           >
-            <div className="px-4 pb-4 pt-1 space-y-4 border-t border-gray-100">
-
-              {/* Font family */}
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Font Family</p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {FONT_OPTIONS.map(({ label, value, preview }) => (
-                    <button
-                      key={value}
-                      onClick={() => upd({ fontFamily: value })}
-                      className={`py-2 px-1.5 rounded-xl border text-center transition-all ${
-                        formatting.fontFamily === value
-                          ? 'border-primary-300 bg-primary-50 text-primary-700'
-                          : 'border-gray-200 text-gray-500 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <div
-                        className="text-sm font-semibold leading-none mb-0.5"
-                        style={{ fontFamily: value }}
-                      >
-                        {preview}
-                      </div>
-                      <div className="text-[9px] font-medium">{label}</div>
-                    </button>
-                  ))}
-                </div>
+            <div className="px-3 py-2 flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-bold text-primary-600 uppercase tracking-wider whitespace-nowrap">
+                {activeSection.title}
+              </span>
+              <div className="flex-1">
+                <FormattingBar
+                  compact
+                  formatting={activeSection.formatting ?? {}}
+                  onChange={onFormattingChange}
+                />
               </div>
-
-              {/* Font size */}
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Base Size</p>
-                <div className="flex gap-2">
-                  {([12, 14, 16] as const).map((sz, i) => (
-                    <button
-                      key={sz}
-                      onClick={() => upd({ fontSize: sz })}
-                      className={`flex-1 py-2 text-xs rounded-xl border transition-all ${
-                        formatting.fontSize === sz
-                          ? 'border-primary-300 bg-primary-50 text-primary-700 font-semibold'
-                          : 'border-gray-200 text-gray-500 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      {['Small', 'Medium', 'Large'][i]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Line height */}
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Line Spacing</p>
-                <div className="flex gap-2">
-                  {([
-                    { label: 'Tight',   value: 1.3 },
-                    { label: 'Normal',  value: 1.5 },
-                    { label: 'Relaxed', value: 1.8 },
-                  ]).map(({ label, value }) => (
-                    <button
-                      key={value}
-                      onClick={() => upd({ lineHeight: value })}
-                      className={`flex-1 py-2 text-xs rounded-xl border transition-all ${
-                        formatting.lineHeight === value
-                          ? 'border-primary-300 bg-primary-50 text-primary-700 font-semibold'
-                          : 'border-gray-200 text-gray-500 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
             </div>
           </motion.div>
         )}

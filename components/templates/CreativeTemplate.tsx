@@ -13,11 +13,20 @@ export default function CreativeTemplate({ data }: { data: ResumeData; sectionOr
       {/* ── Gradient header ── */}
       <header className={`bg-gradient-to-r ${ACCENT} text-white px-4 sm:px-8 lg:px-10 py-7 sm:py-10`}>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
-          <div className="min-w-0">
+          <div className="flex items-center gap-4 min-w-0">
+            {data.photoUrl && (
+              <img
+                src={data.photoUrl}
+                alt={data.name}
+                className="w-20 h-20 rounded-2xl object-cover border-2 border-white/30 shrink-0"
+              />
+            )}
+            <div className="min-w-0">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-none break-words">
               {data.name}
             </h1>
             <p className="text-violet-200 text-base sm:text-lg font-light mt-2">{data.title}</p>
+            </div>
           </div>
           {/* Contact — left-aligned on mobile, right-aligned on sm */}
           <div className="flex flex-col sm:items-end gap-1 sm:gap-1.5 shrink-0">

@@ -32,6 +32,13 @@ export default function ModernTemplate({ data, sectionOrder }: ModernTemplatePro
       <aside className="w-full sm:w-[200px] lg:w-[220px] shrink-0 bg-primary-600 text-white flex flex-col">
 
         <div className="px-5 pt-6 pb-5 border-b border-white/20">
+          {data.photoUrl && (
+            <img
+              src={data.photoUrl}
+              alt={data.name}
+              className="w-20 h-20 rounded-2xl object-cover border-2 border-white/30 mb-3"
+            />
+          )}
           <h1 className="text-xl sm:text-2xl font-extrabold leading-tight tracking-tight">
             {data.name}
           </h1>

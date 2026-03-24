@@ -22,10 +22,21 @@ export default function MinimalistTemplate({ data, sectionOrder }: MinimalistTem
     <div className="w-full min-h-full bg-white font-sans text-gray-800 px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
 
       <header className="mb-6 sm:mb-8">
+        <div className="flex items-center gap-4">
+          {data.photoUrl && (
+            <img
+              src={data.photoUrl}
+              alt={data.name}
+              className="w-16 h-16 rounded-full object-cover border border-gray-200 shrink-0"
+            />
+          )}
+          <div className="min-w-0">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-gray-900 break-words">
           {data.name}
         </h1>
         <p className="text-sm sm:text-base text-gray-500 mt-1 font-light">{data.title}</p>
+          </div>
+        </div>
         <div className="flex flex-wrap gap-x-3 sm:gap-x-5 gap-y-1 mt-3 text-[11px] sm:text-xs text-gray-400">
           <span>{data.email}</span>
           <span className="hidden sm:inline">·</span>
