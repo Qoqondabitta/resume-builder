@@ -1,6 +1,7 @@
 'use client';
 
-import { Mail, Phone, MapPin, Globe, Linkedin, Briefcase, GraduationCap, Star, FolderGit2, Trophy } from 'lucide-react';
+import { Mail, Phone, MapPin, Globe, Linkedin, Briefcase, GraduationCap, Star, FolderGit2, Trophy, type LucideProps } from 'lucide-react';
+import { type ComponentType } from 'react';
 import { ResumeData } from '@/types/resume';
 
 export default function ModernTemplate({ data }: { data: ResumeData }) {
@@ -141,10 +142,16 @@ export default function ModernTemplate({ data }: { data: ResumeData }) {
   );
 }
 
-function SectionHeader({ icon: Icon, label }: { icon: React.ComponentType<{ size?: number; className?: string }>; label: string }) {
+interface SectionHeaderProps {
+  icon: ComponentType<LucideProps>;
+  label: string;
+}
+
+function SectionHeader({ icon, label }: SectionHeaderProps) {
+  const Icon = icon;
   return (
     <div className="flex items-center gap-2 mb-3">
-      <Icon size={15} className="text-primary-600" />
+      {Icon && <Icon size={15} className="text-primary-600" />}
       <h2 className="text-xs font-bold uppercase tracking-widest text-primary-600">{label}</h2>
       <div className="flex-1 h-px bg-primary-100" />
     </div>
