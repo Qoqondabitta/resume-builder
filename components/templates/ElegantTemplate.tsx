@@ -4,28 +4,32 @@ import { ResumeData } from '@/types/resume';
 
 export default function ElegantTemplate({ data }: { data: ResumeData }) {
   return (
-    <div className="w-full min-h-full bg-white font-serif text-gray-800 px-12 py-10">
+    <div className="w-full min-h-full bg-white font-serif text-gray-800 px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
 
       {/* ── Centered header ── */}
       <header className="text-center mb-2">
-        <h1 className="text-4xl font-bold tracking-[0.15em] uppercase text-gray-900">{data.name}</h1>
-        <p className="text-sm tracking-[0.3em] uppercase text-amber-600 font-sans mt-2">{data.title}</p>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-[0.1em] sm:tracking-[0.15em] uppercase text-gray-900 break-words">
+          {data.name}
+        </h1>
+        <p className="text-xs sm:text-sm tracking-[0.2em] sm:tracking-[0.3em] uppercase text-amber-600 font-sans mt-2">
+          {data.title}
+        </p>
 
         {/* Decorative rule */}
-        <div className="flex items-center justify-center gap-3 mt-4">
-          <div className="h-px w-16 bg-amber-400" />
+        <div className="flex items-center justify-center gap-3 mt-3 sm:mt-4">
+          <div className="h-px w-10 sm:w-16 bg-amber-400" />
           <div className="w-1.5 h-1.5 rotate-45 bg-amber-400" />
-          <div className="h-px w-16 bg-amber-400" />
+          <div className="h-px w-10 sm:w-16 bg-amber-400" />
         </div>
 
-        <div className="flex flex-wrap justify-center gap-x-5 gap-y-1 mt-4 text-xs font-sans text-gray-500 tracking-wide">
+        <div className="flex flex-wrap justify-center gap-x-3 sm:gap-x-5 gap-y-1 mt-3 sm:mt-4 text-[11px] sm:text-xs font-sans text-gray-500 tracking-wide">
           <span>{data.email}</span>
           <Dot />
           <span>{data.phone}</span>
           <Dot />
           <span>{data.location}</span>
           {data.website  && <><Dot /><span>{data.website}</span></>}
-          {data.linkedin && <><Dot /><span>{data.linkedin}</span></>}
+          {data.linkedin && <><Dot /><span className="break-all">{data.linkedin}</span></>}
         </div>
       </header>
 
@@ -33,26 +37,40 @@ export default function ElegantTemplate({ data }: { data: ResumeData }) {
 
       {/* Summary */}
       <Section label="Profile">
-        <p className="text-sm leading-relaxed text-gray-600 text-center italic">{data.summary}</p>
+        <p className="text-xs sm:text-sm leading-relaxed text-gray-600 text-center italic">
+          {data.summary}
+        </p>
       </Section>
 
       <ElegantDivider />
 
       {/* Experience */}
       <Section label="Professional Experience">
-        <div className="space-y-6">
+        <div className="space-y-5 sm:space-y-6">
           {data.experience.map((exp) => (
-            <div key={exp.role + exp.company}>
-              <div className="flex items-baseline justify-between flex-wrap gap-2">
+            <div
+              key={exp.role + exp.company}
+              className="group hover:bg-amber-50/40 rounded-lg p-2 -mx-2 transition-colors"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-2 flex-wrap">
                 <div>
-                  <span className="text-sm font-bold text-gray-900 tracking-wide">{exp.role}</span>
-                  <span className="text-xs text-gray-500 font-sans ml-2">— {exp.company}, {exp.location}</span>
+                  <span className="text-xs sm:text-sm font-bold text-gray-900 tracking-wide">
+                    {exp.role}
+                  </span>
+                  <span className="text-[11px] sm:text-xs text-gray-500 font-sans ml-0 sm:ml-2 block sm:inline">
+                    — {exp.company}, {exp.location}
+                  </span>
                 </div>
-                <span className="text-[11px] font-sans text-amber-600 tracking-wide">{exp.period}</span>
+                <span className="self-start text-[11px] font-sans text-amber-600 tracking-wide whitespace-nowrap">
+                  {exp.period}
+                </span>
               </div>
-              <ul className="mt-2 space-y-1.5">
+              <ul className="mt-2 space-y-1 sm:space-y-1.5">
                 {exp.bullets.map((b) => (
-                  <li key={b} className="text-xs text-gray-600 font-sans leading-relaxed flex items-start gap-2.5">
+                  <li
+                    key={b}
+                    className="text-[11px] sm:text-xs text-gray-600 font-sans leading-relaxed flex items-start gap-2 sm:gap-2.5"
+                  >
                     <span className="shrink-0 text-amber-500 mt-0.5 text-[10px]">◆</span>
                     {b}
                   </li>
@@ -65,8 +83,8 @@ export default function ElegantTemplate({ data }: { data: ResumeData }) {
 
       <ElegantDivider />
 
-      {/* Two-column lower section */}
-      <div className="grid sm:grid-cols-[1fr_auto_1fr] gap-6">
+      {/* Lower section — stack on mobile, three-col on sm */}
+      <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto_1fr] gap-5 sm:gap-6">
 
         {/* Left: Education + Languages */}
         <div className="space-y-5">
@@ -74,10 +92,12 @@ export default function ElegantTemplate({ data }: { data: ResumeData }) {
             <ElegantSubHeader label="Education" />
             {data.education.map((e) => (
               <div key={e.degree}>
-                <p className="text-sm font-bold text-gray-900">{e.degree}</p>
-                <p className="text-xs font-sans text-gray-500 mt-0.5">{e.school}</p>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">{e.degree}</p>
+                <p className="text-[11px] sm:text-xs font-sans text-gray-500 mt-0.5">{e.school}</p>
                 <p className="text-[11px] font-sans text-amber-600">{e.period}</p>
-                {e.note && <p className="text-[11px] font-sans text-gray-400 italic mt-1">{e.note}</p>}
+                {e.note && (
+                  <p className="text-[11px] font-sans text-gray-400 italic mt-0.5">{e.note}</p>
+                )}
               </div>
             ))}
           </div>
@@ -86,7 +106,7 @@ export default function ElegantTemplate({ data }: { data: ResumeData }) {
             <div>
               <ElegantSubHeader label="Languages" />
               {data.languages.map((l) => (
-                <p key={l} className="text-xs font-sans text-gray-600 flex items-center gap-2">
+                <p key={l} className="text-[11px] sm:text-xs font-sans text-gray-600 flex items-center gap-2 mb-1">
                   <span className="text-amber-400 text-[8px]">◆</span>{l}
                 </p>
               ))}
@@ -94,21 +114,25 @@ export default function ElegantTemplate({ data }: { data: ResumeData }) {
           )}
         </div>
 
-        {/* Vertical divider */}
+        {/* Vertical divider — hidden on mobile */}
         <div className="hidden sm:flex flex-col items-center">
           <div className="w-px flex-1 bg-amber-100" />
           <div className="w-1.5 h-1.5 rotate-45 bg-amber-300 my-1" />
           <div className="w-px flex-1 bg-amber-100" />
         </div>
 
-        {/* Right: Skills */}
+        {/* Right: Skills + Achievements */}
         <div className="space-y-5">
           <div>
             <ElegantSubHeader label="Core Competencies" />
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div className="grid grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-1">
               {data.skills.map((s) => (
-                <p key={s} className="text-xs font-sans text-gray-600 flex items-center gap-1.5">
-                  <span className="text-amber-400 text-[8px]">◆</span>{s}
+                <p
+                  key={s}
+                  className="text-[11px] sm:text-xs font-sans text-gray-600 flex items-center gap-1.5"
+                >
+                  <span className="text-amber-400 text-[8px] shrink-0">◆</span>
+                  <span className="truncate">{s}</span>
                 </p>
               ))}
             </div>
@@ -118,8 +142,14 @@ export default function ElegantTemplate({ data }: { data: ResumeData }) {
             <ElegantSubHeader label="Achievements" />
             <div className="space-y-1.5">
               {data.achievements.slice(0, 3).map((a) => (
-                <p key={a} className="text-xs font-sans text-gray-600 flex items-start gap-1.5">
-                  <span className="text-amber-400 text-[8px] shrink-0 mt-0.5">◆</span>{a}
+                <p
+                  key={a}
+                  className="text-[11px] sm:text-xs font-sans text-gray-600 flex items-start gap-1.5 group"
+                >
+                  <span className="text-amber-400 text-[8px] shrink-0 mt-0.5 group-hover:text-amber-500 transition-colors">
+                    ◆
+                  </span>
+                  {a}
                 </p>
               ))}
             </div>
@@ -131,13 +161,21 @@ export default function ElegantTemplate({ data }: { data: ResumeData }) {
 
       {/* Projects */}
       <Section label="Notable Projects">
-        <div className="grid sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
           {data.projects.map((p) => (
-            <div key={p.name} className="border border-amber-100 rounded-lg p-4">
-              <p className="text-sm font-bold text-gray-900">{p.name}</p>
-              {p.link && <p className="text-[11px] font-sans text-amber-600 mt-0.5">{p.link}</p>}
-              <p className="text-xs font-sans text-gray-600 mt-1 leading-relaxed">{p.description}</p>
-              <p className="text-[11px] font-sans text-gray-400 mt-2 italic">{p.tech.join(', ')}</p>
+            <div
+              key={p.name}
+              className="border border-amber-100 rounded-lg p-3 sm:p-4
+                hover:border-amber-300 hover:shadow-sm transition-all"
+            >
+              <p className="text-xs sm:text-sm font-bold text-gray-900">{p.name}</p>
+              {p.link && (
+                <p className="text-[11px] font-sans text-amber-600 mt-0.5 break-all">{p.link}</p>
+              )}
+              <p className="text-[11px] sm:text-xs font-sans text-gray-600 mt-1 leading-relaxed">
+                {p.description}
+              </p>
+              <p className="text-[11px] font-sans text-gray-400 mt-1.5 italic">{p.tech.join(', ')}</p>
             </div>
           ))}
         </div>
@@ -148,17 +186,17 @@ export default function ElegantTemplate({ data }: { data: ResumeData }) {
 }
 
 function Dot() {
-  return <span className="text-amber-400">·</span>;
+  return <span className="text-amber-300 hidden xs:inline">·</span>;
 }
 
 function ElegantDivider() {
   return (
-    <div className="flex items-center justify-center gap-3 my-6">
+    <div className="flex items-center justify-center gap-2 sm:gap-3 my-5 sm:my-6">
       <div className="h-px flex-1 bg-amber-100" />
       <div className="w-1 h-1 rotate-45 bg-amber-300" />
-      <div className="h-px w-8 bg-amber-100" />
+      <div className="h-px w-5 sm:w-8 bg-amber-100" />
       <div className="w-1.5 h-1.5 rotate-45 bg-amber-400" />
-      <div className="h-px w-8 bg-amber-100" />
+      <div className="h-px w-5 sm:w-8 bg-amber-100" />
       <div className="w-1 h-1 rotate-45 bg-amber-300" />
       <div className="h-px flex-1 bg-amber-100" />
     </div>
@@ -168,7 +206,9 @@ function ElegantDivider() {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="mb-1">
-      <h2 className="text-[10px] font-sans font-bold uppercase tracking-[0.3em] text-amber-600 text-center mb-4">{label}</h2>
+      <h2 className="text-[9px] sm:text-[10px] font-sans font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-amber-600 text-center mb-3 sm:mb-4">
+        {label}
+      </h2>
       {children}
     </section>
   );
@@ -177,7 +217,9 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 function ElegantSubHeader({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2 mb-2">
-      <h3 className="text-[10px] font-sans font-bold uppercase tracking-widest text-amber-600">{label}</h3>
+      <h3 className="text-[9px] sm:text-[10px] font-sans font-bold uppercase tracking-widest text-amber-600 whitespace-nowrap">
+        {label}
+      </h3>
       <div className="h-px flex-1 bg-amber-100" />
     </div>
   );
