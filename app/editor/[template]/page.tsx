@@ -1,322 +1,468 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { motion, Reorder, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Save, Camera, Plus, X, Check } from 'lucide-react';
-import { SAMPLE_RESUME, type ResumeData } from '@/types/resume';
-import { DraggableSection, type EditorSection, type SectionType } from '@/components/editor/SectionBlock';
+import {
+  ArrowLeft, Save, Bold, Italic, Underline,
+  AlignLeft, AlignCenter, AlignRight,
+  Plus, Trash2, Eye, EyeOff, GripVertical,
+  Check, Camera, PanelLeft, Minus,
+} from 'lucide-react';
+import { Reorder, useDragControls } from 'framer-motion';
+import {
+  CanvasResumeData, ResumeSection, SectionPosition, DEFAULT_RESUME,
+} from '@/types/canvas-resume';
+import ModernCanvas from '@/components/canvas/ModernCanvas';
+import ClassicCanvas from '@/components/canvas/ClassicCanvas';
+import MinimalCanvas from '@/components/canvas/MinimalCanvas';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'canvas-resume-data';
 
-const TEMPLATE_LABELS: Record<string, string> = {
-  modern: 'Modern', minimalist: 'Minimalist', creative: 'Creative',
-  corporate: 'Corporate', elegant: 'Elegant',
-};
-
-const DEFAULT_SECTIONS: EditorSection[] = [
-  { id: 'summary',        type: 'summary',        title: 'Summary'        },
-  { id: 'experience',     type: 'experience',     title: 'Experience'     },
-  { id: 'education',      type: 'education',      title: 'Education'      },
-  { id: 'skills',         type: 'skills',         title: 'Skills'         },
-  { id: 'projects',       type: 'projects',       title: 'Projects'       },
-  { id: 'achievements',   type: 'achievements',   title: 'Achievements'   },
-  { id: 'certifications', type: 'certifications', title: 'Certifications' },
-  { id: 'languages',      type: 'languages',      title: 'Languages'      },
+const FONT_FAMILIES = [
+  { label: 'Inter',     value: "'Inter', sans-serif" },
+  { label: 'Georgia',   value: "'Georgia', serif" },
+  { label: 'Helvetica', value: "'Helvetica Neue', Arial, sans-serif" },
+  { label: 'Times',     value: "'Times New Roman', serif" },
 ];
-
-const ADDABLE_SECTIONS: { type: SectionType; label: string }[] = [
-  { type: 'summary',        label: 'Summary'        },
-  { type: 'experience',     label: 'Experience'     },
-  { type: 'education',      label: 'Education'      },
-  { type: 'skills',         label: 'Skills'         },
-  { type: 'projects',       label: 'Projects'       },
-  { type: 'achievements',   label: 'Achievements'   },
-  { type: 'certifications', label: 'Certifications' },
-  { type: 'languages',      label: 'Languages'      },
-  { type: 'custom',         label: 'Custom Section' },
-];
-
-// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function EditorPage() {
   const params     = useParams();
   const router     = useRouter();
   const templateId = (params?.template as string) ?? 'modern';
-  const storageKey = `resume-editor-${templateId}`;
 
-  // ── State ──────────────────────────────────────────────────────────────────
-
-  const [data, setData] = useState<ResumeData>(() => {
-    if (typeof window === 'undefined') return SAMPLE_RESUME;
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) return JSON.parse(stored) as ResumeData;
-    } catch { /* ignore */ }
-    return { ...SAMPLE_RESUME };
-  });
-
-  const [sections, setSections] = useState<EditorSection[]>(() => {
-    if (typeof window === 'undefined') return DEFAULT_SECTIONS;
-    try {
-      const stored = localStorage.getItem(`${storageKey}-sections`);
-      if (stored) return JSON.parse(stored) as EditorSection[];
-    } catch { /* ignore */ }
-    return [...DEFAULT_SECTIONS];
-  });
-
+  const [data,           setData]           = useState<CanvasResumeData>(DEFAULT_RESUME);
   const [saveStatus,     setSaveStatus]     = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [showSidebar,    setShowSidebar]    = useState(true);
   const [showAddSection, setShowAddSection] = useState(false);
+  const [newSectionTitle, setNewSectionTitle] = useState('');
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Auto-save (debounced) ──────────────────────────────────────────────────
-
+  // ── Load from localStorage ────────────────────────────────────────────────
   useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem(storageKey, JSON.stringify(data));
-      localStorage.setItem(`${storageKey}-sections`, JSON.stringify(sections));
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [data, sections, storageKey]);
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setData(JSON.parse(saved));
+    } catch { /* ignore */ }
+  }, []);
 
-  // ── Scroll lock ────────────────────────────────────────────────────────────
-
+  // ── Lock body scroll ──────────────────────────────────────────────────────
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // ── Explicit save ──────────────────────────────────────────────────────────
-
-  const handleSave = useCallback(() => {
+  // ── Save ──────────────────────────────────────────────────────────────────
+  const save = useCallback(() => {
     setSaveStatus('saving');
-    localStorage.setItem(storageKey, JSON.stringify(data));
-    localStorage.setItem(`${storageKey}-sections`, JSON.stringify(sections));
-    setTimeout(() => setSaveStatus('saved'), 300);
-    setTimeout(() => setSaveStatus('idle'), 2000);
-  }, [storageKey, data, sections]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    setTimeout(() => setSaveStatus('saved'),  500);
+    setTimeout(() => setSaveStatus('idle'),  2200);
+  }, [data]);
 
-  // ── Photo upload ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [save]);
 
-  const handlePhotoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setData(d => ({ ...d, photoUrl: ev.target?.result as string }));
-    reader.readAsDataURL(file);
-  }, []);
+  // ── Style helpers ─────────────────────────────────────────────────────────
+  const updateStyles = (patch: Partial<CanvasResumeData['styles']>) =>
+    setData(d => ({ ...d, styles: { ...d.styles, ...patch } }));
 
-  // ── Section management ─────────────────────────────────────────────────────
+  // B/I/U apply to the currently-selected text via execCommand
+  const execFormat = (cmd: string) => document.execCommand(cmd);
 
-  const addSection = (type: SectionType) => {
-    const label = ADDABLE_SECTIONS.find(s => s.type === type)?.label ?? 'Section';
-    setSections(prev => [
-      ...prev,
-      {
-        id: `${type}-${Date.now()}`,
-        type,
-        title: label,
-        ...(type === 'custom' ? { customContent: [] } : {}),
-      },
-    ]);
+  // ── Section helpers ───────────────────────────────────────────────────────
+  const addSection = () => {
+    const title = newSectionTitle.trim() || 'New Section';
+    const newSection: ResumeSection = {
+      id: `section-${Date.now()}`,
+      title,
+      content: 'Click here to start editing this section.',
+      position: 'full',
+      visible: true,
+    };
+    setData(d => ({ ...d, sections: [...d.sections, newSection] }));
+    setNewSectionTitle('');
     setShowAddSection(false);
   };
 
-  const updateSection = (id: string, updated: EditorSection) =>
-    setSections(prev => prev.map(s => s.id === id ? updated : s));
+  const deleteSection    = (id: string) =>
+    setData(d => ({ ...d, sections: d.sections.filter(s => s.id !== id) }));
 
-  const deleteSection = (id: string) =>
-    setSections(prev => prev.filter(s => s.id !== id));
+  const toggleVisible    = (id: string) =>
+    setData(d => ({
+      ...d,
+      sections: d.sections.map(s => s.id === id ? { ...s, visible: !s.visible } : s),
+    }));
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const setPosition = (id: string, position: SectionPosition) =>
+    setData(d => ({
+      ...d,
+      sections: d.sections.map(s => s.id === id ? { ...s, position } : s),
+    }));
 
-  const templateLabel = TEMPLATE_LABELS[templateId] ?? 'Resume';
-  const photoWidth    = data.photoWidth ?? 64;
+  // ── Photo upload ──────────────────────────────────────────────────────────
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev =>
+      setData(d => ({
+        ...d,
+        personalInfo: { ...d.personalInfo, photoUrl: ev.target?.result as string },
+      }));
+    reader.readAsDataURL(file);
+  };
 
+  // ── Canvas renderer ───────────────────────────────────────────────────────
+  const renderCanvas = () => {
+    const props = { data, onDataChange: setData };
+    switch (templateId) {
+      case 'classic': return <ClassicCanvas {...props} />;
+      case 'minimal': return <MinimalCanvas {...props} />;
+      default:        return <ModernCanvas  {...props} />;
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-[100] bg-gray-100 flex flex-col">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-gray-100">
 
-      {/* ── Top bar ── */}
-      <header className="shrink-0 h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-3 shadow-sm">
+      {/* ══════════════════════════════════════════════════════════════════
+          TOP TOOLBAR
+      ══════════════════════════════════════════════════════════════════ */}
+      <div className="h-12 bg-white border-b border-gray-200 flex items-center gap-1 px-2 shrink-0 overflow-x-auto">
+
+        {/* Back */}
         <button
-          onClick={() => router.back()}
-          className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-500"
+          onClick={() => router.push('/')}
+          className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 shrink-0"
+          title="Back to home"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={16} />
         </button>
 
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-gray-900 truncate">{templateLabel}</p>
-          <p className="text-[10px] text-gray-400">Drag to reorder · Click to edit section</p>
+        {/* Sidebar toggle */}
+        <button
+          onClick={() => setShowSidebar(v => !v)}
+          className={`p-2 rounded-lg shrink-0 transition-colors ${showSidebar ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:bg-gray-100'}`}
+          title="Toggle sidebar"
+        >
+          <PanelLeft size={16} />
+        </button>
+
+        <div className="w-px h-6 bg-gray-200 mx-1 shrink-0" />
+
+        {/* Template switcher */}
+        {(['modern', 'classic', 'minimal'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => router.push(`/editor/${t}`)}
+            className={`px-2.5 py-1 text-xs rounded-md font-medium capitalize shrink-0 transition-colors ${
+              templateId === t
+                ? 'bg-primary-500 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+
+        <div className="w-px h-6 bg-gray-200 mx-1 shrink-0" />
+
+        {/* Font family */}
+        <select
+          value={data.styles.fontFamily}
+          onChange={e => updateStyles({ fontFamily: e.target.value })}
+          className="text-xs border border-gray-200 rounded px-1.5 py-1 bg-white text-gray-700 shrink-0 cursor-pointer"
+        >
+          {FONT_FAMILIES.map(f => (
+            <option key={f.value} value={f.value}>{f.label}</option>
+          ))}
+        </select>
+
+        {/* Font size */}
+        <div className="flex items-center border border-gray-200 rounded overflow-hidden shrink-0">
+          <button
+            onMouseDown={e => { e.preventDefault(); updateStyles({ fontSize: Math.max(8, data.styles.fontSize - 1) }); }}
+            className="px-1.5 py-1 hover:bg-gray-100 text-gray-600"
+          >
+            <Minus size={12} />
+          </button>
+          <span className="text-xs px-1.5 min-w-[28px] text-center text-gray-700 tabular-nums">
+            {data.styles.fontSize}
+          </span>
+          <button
+            onMouseDown={e => { e.preventDefault(); updateStyles({ fontSize: Math.min(20, data.styles.fontSize + 1) }); }}
+            className="px-1.5 py-1 hover:bg-gray-100 text-gray-600"
+          >
+            <Plus size={12} />
+          </button>
         </div>
 
+        <div className="w-px h-6 bg-gray-200 mx-1 shrink-0" />
+
+        {/* B / I / U — use onMouseDown+preventDefault to keep canvas selection */}
+        {([
+          { icon: <Bold      size={13} />, cmd: 'bold' },
+          { icon: <Italic    size={13} />, cmd: 'italic' },
+          { icon: <Underline size={13} />, cmd: 'underline' },
+        ] as const).map(({ icon, cmd }) => (
+          <button
+            key={cmd}
+            onMouseDown={e => { e.preventDefault(); execFormat(cmd); }}
+            className="p-2 hover:bg-gray-100 rounded text-gray-600 shrink-0"
+            title={cmd}
+          >
+            {icon}
+          </button>
+        ))}
+
+        <div className="w-px h-6 bg-gray-200 mx-1 shrink-0" />
+
+        {/* Alignment */}
+        {([
+          { icon: <AlignLeft   size={13} />, cmd: 'justifyLeft'   },
+          { icon: <AlignCenter size={13} />, cmd: 'justifyCenter' },
+          { icon: <AlignRight  size={13} />, cmd: 'justifyRight'  },
+        ] as const).map(({ icon, cmd }) => (
+          <button
+            key={cmd}
+            onMouseDown={e => { e.preventDefault(); execFormat(cmd); }}
+            className="p-2 hover:bg-gray-100 rounded text-gray-600 shrink-0"
+          >
+            {icon}
+          </button>
+        ))}
+
+        <div className="w-px h-6 bg-gray-200 mx-1 shrink-0" />
+
+        {/* Font color */}
+        <label className="flex items-center gap-1 shrink-0 cursor-pointer" title="Text color">
+          <span className="text-xs font-bold text-gray-500">A</span>
+          <input
+            type="color"
+            value={data.styles.textColor}
+            onChange={e => updateStyles({ textColor: e.target.value })}
+            className="w-5 h-5 cursor-pointer border-0 rounded"
+          />
+        </label>
+
+        {/* Accent color */}
+        <label className="flex items-center gap-1 shrink-0 cursor-pointer" title="Accent color">
+          <span className="text-xs text-gray-500">●</span>
+          <input
+            type="color"
+            value={data.styles.accentColor}
+            onChange={e => updateStyles({ accentColor: e.target.value })}
+            className="w-5 h-5 cursor-pointer border-0 rounded"
+          />
+        </label>
+
+        <div className="flex-1 min-w-[8px]" />
+
+        {/* Save */}
         <button
-          onClick={handleSave}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all ${
+          onClick={save}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ${
             saveStatus === 'saved'
-              ? 'border-green-300 bg-green-50 text-green-600'
-              : 'border-primary-200 text-primary-600 hover:bg-primary-50'
+              ? 'bg-green-500 text-white'
+              : 'bg-primary-500 hover:bg-primary-600 text-white'
           }`}
         >
           {saveStatus === 'saved' ? <Check size={13} /> : <Save size={13} />}
           <span className="hidden sm:inline">
-            {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved!' : 'Save'}
+            {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
           </span>
         </button>
-      </header>
+      </div>
 
-      {/* ── Scrollable editor ── */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* ══════════════════════════════════════════════════════════════════
+          BODY
+      ══════════════════════════════════════════════════════════════════ */}
+      <div className="flex-1 flex overflow-hidden">
 
-        {/* Profile card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Profile</p>
-
-          <div className="flex items-start gap-3">
-            {/* Photo upload */}
-            <label className="relative cursor-pointer group shrink-0">
-              <div
-                className="rounded-2xl bg-gray-200 overflow-hidden flex items-center justify-center"
-                style={{ width: photoWidth, height: photoWidth }}
-              >
-                {data.photoUrl
-                  ? <img src={data.photoUrl} alt="Photo" className="w-full h-full object-cover" />
-                  : <Camera size={Math.round(photoWidth * 0.3)} className="text-gray-400" />
-                }
-              </div>
-              <div className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Camera size={14} className="text-white" />
-              </div>
-              <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-            </label>
-
-            <div className="flex-1 space-y-1.5 min-w-0">
-              <ProfileInput value={data.name}  placeholder="Full Name" onChange={v => setData(d => ({ ...d, name: v }))}  className="font-semibold" />
-              <ProfileInput value={data.title} placeholder="Job Title" onChange={v => setData(d => ({ ...d, title: v }))} />
-
-              {/* Photo size slider */}
-              {data.photoUrl && (
-                <div className="flex items-center gap-2 pt-0.5">
-                  <span className="text-[10px] text-gray-400 shrink-0">Size</span>
-                  <input
-                    type="range" min={40} max={120} value={photoWidth}
-                    onChange={e => setData(d => ({ ...d, photoWidth: Number(e.target.value) }))}
-                    className="flex-1 h-1.5 accent-primary-600 cursor-pointer"
-                  />
-                  <span className="text-[10px] text-gray-400 w-7 text-right shrink-0">{photoWidth}px</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Contact fields */}
-          <div className="grid grid-cols-2 gap-1.5">
-            <ProfileInput value={data.email}          placeholder="Email"    onChange={v => setData(d => ({ ...d, email: v }))} />
-            <ProfileInput value={data.phone}          placeholder="Phone"    onChange={v => setData(d => ({ ...d, phone: v }))} />
-            <ProfileInput value={data.location}       placeholder="Location" onChange={v => setData(d => ({ ...d, location: v }))} />
-            <ProfileInput value={data.website ?? ''}  placeholder="Website"  onChange={v => setData(d => ({ ...d, website: v }))} />
-            <ProfileInput
-              value={data.linkedin ?? ''}
-              placeholder="LinkedIn"
-              onChange={v => setData(d => ({ ...d, linkedin: v }))}
-              className="col-span-2"
-            />
-          </div>
-        </div>
-
-        {/* Draggable sections */}
-        <Reorder.Group axis="y" values={sections} onReorder={setSections} className="space-y-2">
-          {sections.map(section => (
-            <DraggableSection
-              key={section.id}
-              section={section}
-              data={data}
-              onDataChange={setData}
-              onRename={title => updateSection(section.id, { ...section, title })}
-              onDelete={() => deleteSection(section.id)}
-              onSectionChange={updated => updateSection(section.id, updated)}
-            />
-          ))}
-        </Reorder.Group>
-
-        {/* Add section */}
-        <div className="relative">
-          <button
-            onClick={() => setShowAddSection(v => !v)}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-gray-200 text-xs font-semibold text-gray-400 hover:border-primary-300 hover:text-primary-500 hover:bg-primary-50/50 transition-all"
-          >
-            <Plus size={14} />
-            Add Section
-          </button>
-
-          <AnimatePresence>
-            {showAddSection && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="absolute bottom-full mb-2 left-0 right-0 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-10"
-              >
-                <div className="flex items-center justify-between px-2 py-1 mb-1">
-                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Add Section</p>
-                  <button onClick={() => setShowAddSection(false)} className="text-gray-400 hover:text-gray-600">
-                    <X size={14} />
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-1">
-                  {ADDABLE_SECTIONS.map(({ type, label }) => (
-                    <button
-                      key={type}
-                      onClick={() => addSection(type)}
-                      className="text-left px-3 py-2 rounded-xl text-xs font-medium text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Save button (bottom) */}
-        <button
-          onClick={handleSave}
-          className={`w-full py-3 rounded-2xl text-sm font-bold transition-all active:scale-[0.98] ${
-            saveStatus === 'saved'
-              ? 'bg-green-500 text-white shadow-green-200 shadow-md'
-              : 'bg-primary-600 text-white hover:bg-primary-700 shadow-primary-200 shadow-md'
+        {/* ── SIDEBAR ──────────────────────────────────────────────── */}
+        <aside
+          className={`bg-white border-r border-gray-200 flex flex-col transition-[width] duration-200 shrink-0 overflow-hidden ${
+            showSidebar ? 'w-56' : 'w-0'
           }`}
         >
-          {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? '✓ Changes Saved!' : 'Save Resume'}
-        </button>
+          {/* Photo upload */}
+          <div className="p-3 border-b border-gray-100 shrink-0">
+            <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-2">
+              Profile Photo
+            </p>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+            <button
+              onClick={() => photoInputRef.current?.click()}
+              className="w-full flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs text-gray-600 border border-gray-200 transition-colors"
+            >
+              <Camera size={13} />
+              {data.personalInfo.photoUrl ? 'Change Photo' : 'Upload Photo'}
+            </button>
+            {data.personalInfo.photoUrl && (
+              <button
+                onClick={() =>
+                  setData(d => ({ ...d, personalInfo: { ...d.personalInfo, photoUrl: '' } }))
+                }
+                className="w-full mt-1 text-[11px] text-red-400 hover:text-red-600 text-center transition-colors"
+              >
+                Remove photo
+              </button>
+            )}
+          </div>
 
-        <div className="h-6" />
+          {/* Sections list */}
+          <div className="flex-1 overflow-y-auto p-3">
+            <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-2">
+              Sections
+            </p>
+            <Reorder.Group
+              axis="y"
+              values={data.sections}
+              onReorder={sections => setData(d => ({ ...d, sections }))}
+              className="space-y-1.5"
+            >
+              {data.sections.map(section => (
+                <SidebarItem
+                  key={section.id}
+                  section={section}
+                  onToggleVisible={() => toggleVisible(section.id)}
+                  onDelete={() => deleteSection(section.id)}
+                  onSetPosition={pos => setPosition(section.id, pos)}
+                />
+              ))}
+            </Reorder.Group>
+          </div>
+
+          {/* Add section */}
+          <div className="p-3 border-t border-gray-100 shrink-0">
+            {showAddSection ? (
+              <div className="space-y-2">
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Section title…"
+                  value={newSectionTitle}
+                  onChange={e => setNewSectionTitle(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') addSection();
+                    if (e.key === 'Escape') setShowAddSection(false);
+                  }}
+                  className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                />
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={addSection}
+                    className="flex-1 bg-primary-500 text-white text-xs rounded-lg px-2 py-1.5 hover:bg-primary-600 transition-colors"
+                  >
+                    Add
+                  </button>
+                  <button
+                    onClick={() => { setShowAddSection(false); setNewSectionTitle(''); }}
+                    className="px-2 py-1.5 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowAddSection(true)}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500 hover:border-primary-400 hover:text-primary-500 transition-colors"
+              >
+                <Plus size={13} />
+                Add Section
+              </button>
+            )}
+          </div>
+        </aside>
+
+        {/* ── CANVAS ───────────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center items-start">
+          <div
+            className="w-full max-w-[794px] bg-white shadow-xl overflow-hidden"
+            style={{ minHeight: 'min(1123px, 88vh)' }}
+          >
+            {renderCanvas()}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Profile input ─────────────────────────────────────────────────────────────
+// ─── Sidebar draggable section item ──────────────────────────────────────────
 
-function ProfileInput({
-  value, placeholder, onChange, className = '',
+function SidebarItem({
+  section,
+  onToggleVisible,
+  onDelete,
+  onSetPosition,
 }: {
-  value: string; placeholder: string;
-  onChange: (v: string) => void; className?: string;
+  section: ResumeSection;
+  onToggleVisible: () => void;
+  onDelete: () => void;
+  onSetPosition: (p: SectionPosition) => void;
 }) {
+  const controls = useDragControls();
+
   return (
-    <input
-      type="text"
-      value={value}
-      placeholder={placeholder}
-      onChange={e => onChange(e.target.value)}
-      className={`
-        w-full px-2.5 py-1.5 text-xs bg-white border border-gray-200 rounded-lg
-        focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-transparent
-        placeholder:text-gray-300 transition-all
-        ${className}
-      `}
-    />
+    <Reorder.Item value={section} dragListener={false} dragControls={controls}>
+      <div className="bg-gray-50 border border-gray-100 rounded-lg p-2 select-none">
+        {/* Title row */}
+        <div className="flex items-center gap-1">
+          <button
+            onPointerDown={e => controls.start(e)}
+            className="text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing shrink-0 touch-none"
+          >
+            <GripVertical size={13} />
+          </button>
+          <span className={`flex-1 text-xs truncate ${section.visible ? 'text-gray-700' : 'text-gray-400 line-through'}`}>
+            {section.title || 'Untitled'}
+          </span>
+          <button
+            onClick={onToggleVisible}
+            className="text-gray-300 hover:text-gray-600 shrink-0 transition-colors"
+          >
+            {section.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+          </button>
+          <button
+            onClick={onDelete}
+            className="text-gray-300 hover:text-red-400 shrink-0 transition-colors"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+
+        {/* Position L / F / R */}
+        <div className="flex gap-1 mt-1.5 ml-4">
+          {(['left', 'full', 'right'] as SectionPosition[]).map(pos => (
+            <button
+              key={pos}
+              onClick={() => onSetPosition(pos)}
+              className={`flex-1 text-[9px] py-0.5 rounded font-semibold transition-colors ${
+                section.position === pos
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+              }`}
+            >
+              {pos === 'left' ? 'L' : pos === 'right' ? 'R' : 'F'}
+            </button>
+          ))}
+        </div>
+      </div>
+    </Reorder.Item>
   );
 }

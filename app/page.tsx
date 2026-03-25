@@ -1,19 +1,116 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Plus, Zap, TrendingUp, FileText, LayoutTemplate, Linkedin, Code2, BarChart2, Palette, Megaphone, Database, Sparkles, PenLine } from 'lucide-react';
+import { Plus, Zap, TrendingUp, FileText, LayoutTemplate, Linkedin, PenLine } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 
 const TEMPLATES = [
-  { name: 'Modern',     tag: 'Two-column', icon: Code2,     from: 'from-blue-500',    to: 'to-blue-700',    id: 'modern'     },
-  { name: 'Minimalist', tag: 'Clean',      icon: BarChart2, from: 'from-slate-400',   to: 'to-slate-600',   id: 'minimalist' },
-  { name: 'Creative',   tag: 'Bold',       icon: Palette,   from: 'from-violet-500',  to: 'to-blue-600',    id: 'creative'   },
-  { name: 'Corporate',  tag: 'Formal',     icon: Megaphone, from: 'from-slate-600',   to: 'to-slate-800',   id: 'corporate'  },
-  { name: 'Elegant',    tag: 'Serif',      icon: Sparkles,  from: 'from-amber-400',   to: 'to-orange-500',  id: 'elegant'    },
-  { name: 'Data Sci.',  tag: 'Analytics',  icon: Database,  from: 'from-emerald-500', to: 'to-emerald-700', id: 'modern'     },
+  {
+    id: 'modern',
+    name: 'Modern',
+    tag: 'Sidebar layout',
+    desc: 'Blue accent sidebar with two-column layout',
+    preview: (
+      <div className="w-full h-full flex text-[4px]">
+        <div className="w-[35%] bg-blue-600 h-full p-1.5 flex flex-col gap-1">
+          <div className="w-6 h-6 rounded-full bg-white/30 mx-auto" />
+          <div className="h-1 bg-white/60 rounded w-10 mx-auto" />
+          <div className="h-0.5 bg-white/40 rounded w-8 mx-auto" />
+          <div className="mt-1 space-y-0.5">
+            <div className="h-0.5 bg-white/30 rounded w-full" />
+            <div className="h-0.5 bg-white/30 rounded w-4/5" />
+            <div className="h-0.5 bg-white/30 rounded w-3/5" />
+          </div>
+        </div>
+        <div className="flex-1 p-1.5 space-y-1">
+          <div className="h-0.5 bg-blue-300 rounded w-3/4" />
+          <div className="h-px bg-blue-100 rounded w-full" />
+          <div className="space-y-0.5">
+            <div className="h-0.5 bg-gray-200 rounded w-full" />
+            <div className="h-0.5 bg-gray-200 rounded w-5/6" />
+          </div>
+          <div className="h-0.5 bg-blue-300 rounded w-2/3 mt-1" />
+          <div className="h-px bg-blue-100 rounded w-full" />
+          <div className="space-y-0.5">
+            <div className="h-0.5 bg-gray-200 rounded w-full" />
+            <div className="h-0.5 bg-gray-200 rounded w-4/5" />
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'classic',
+    name: 'Classic',
+    tag: 'Header + columns',
+    desc: 'Bold header with two-column body',
+    preview: (
+      <div className="w-full h-full flex flex-col text-[4px]">
+        <div className="bg-slate-700 px-2 py-1.5 shrink-0">
+          <div className="h-1.5 bg-white/80 rounded w-16 mb-0.5" />
+          <div className="h-0.5 bg-white/50 rounded w-10" />
+          <div className="flex gap-2 mt-1">
+            <div className="h-0.5 bg-white/30 rounded w-8" />
+            <div className="h-0.5 bg-white/30 rounded w-8" />
+          </div>
+        </div>
+        <div className="flex-1 flex gap-1.5 p-1.5">
+          <div className="flex-1 space-y-1">
+            <div className="h-0.5 bg-slate-400 rounded w-10" />
+            <div className="h-px bg-slate-200 rounded w-full" />
+            <div className="h-0.5 bg-gray-200 rounded w-full" />
+            <div className="h-0.5 bg-gray-200 rounded w-4/5" />
+            <div className="h-0.5 bg-slate-400 rounded w-8 mt-1" />
+            <div className="h-px bg-slate-200 rounded w-full" />
+            <div className="h-0.5 bg-gray-200 rounded w-full" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <div className="h-0.5 bg-slate-400 rounded w-8" />
+            <div className="h-px bg-slate-200 rounded w-full" />
+            <div className="h-0.5 bg-gray-200 rounded w-full" />
+            <div className="h-0.5 bg-gray-200 rounded w-3/4" />
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'minimal',
+    name: 'Minimal',
+    tag: 'Single column',
+    desc: 'Clean typography with subtle accents',
+    preview: (
+      <div className="w-full h-full p-2 flex flex-col gap-1 text-[4px]">
+        <div className="flex items-center gap-1.5 pb-1 border-b border-gray-200">
+          <div className="w-5 h-5 rounded-full bg-gray-200 shrink-0" />
+          <div>
+            <div className="h-1 bg-gray-700 rounded w-14 mb-0.5" />
+            <div className="h-0.5 bg-gray-400 rounded w-9" />
+          </div>
+        </div>
+        <div className="flex items-center gap-0.5 mt-0.5">
+          <div className="w-0.5 h-2 bg-blue-400 rounded-full shrink-0" />
+          <div className="h-0.5 bg-gray-600 rounded w-10" />
+        </div>
+        <div className="space-y-0.5 pl-1">
+          <div className="h-0.5 bg-gray-200 rounded w-full" />
+          <div className="h-0.5 bg-gray-200 rounded w-5/6" />
+        </div>
+        <div className="flex items-center gap-0.5">
+          <div className="w-0.5 h-2 bg-blue-400 rounded-full shrink-0" />
+          <div className="h-0.5 bg-gray-600 rounded w-12" />
+        </div>
+        <div className="space-y-0.5 pl-1">
+          <div className="h-0.5 bg-gray-200 rounded w-full" />
+          <div className="h-0.5 bg-gray-200 rounded w-4/5" />
+          <div className="h-0.5 bg-gray-200 rounded w-3/5" />
+        </div>
+      </div>
+    ),
+  },
 ];
 
 const STATS = [
@@ -88,16 +185,16 @@ export default function DashboardPage() {
           <button className="text-xs text-primary-600 font-semibold hover:underline">View all</button>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {TEMPLATES.map(({ name, tag, icon: Icon, from, to, id }) => (
+          {TEMPLATES.map(({ name, tag, id, preview }) => (
             <motion.div
-              key={name + id}
+              key={id}
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
               className="bg-white rounded-2xl shadow-card overflow-hidden flex flex-col"
             >
-              {/* Thumbnail */}
-              <div className={`bg-gradient-to-br ${from} ${to} h-24 flex items-center justify-center w-full`}>
-                <Icon size={32} className="text-white/80" />
+              {/* Thumbnail — mini resume preview */}
+              <div className="h-28 bg-gray-50 border-b border-gray-100 overflow-hidden">
+                {preview}
               </div>
 
               {/* Info */}
