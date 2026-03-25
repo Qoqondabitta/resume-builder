@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Plus, Zap, TrendingUp, FileText, LayoutTemplate, Linkedin, Code2, BarChart2, Palette, Megaphone, Database, Sparkles, Eye, PenLine } from 'lucide-react';
+import { Plus, Zap, TrendingUp, FileText, LayoutTemplate, Linkedin, Code2, BarChart2, Palette, Megaphone, Database, Sparkles, PenLine } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/Card';
@@ -95,14 +95,10 @@ export default function DashboardPage() {
               whileTap={{ scale: 0.98 }}
               className="bg-white rounded-2xl shadow-card overflow-hidden flex flex-col"
             >
-              {/* Thumbnail — tap to preview */}
-              <button
-                onClick={() => router.push(`/resume/${id}`)}
-                className={`bg-gradient-to-br ${from} ${to} h-24 flex items-center justify-center w-full group`}
-                title="Preview template"
-              >
-                <Icon size={32} className="text-white/80 group-hover:scale-110 transition-transform" />
-              </button>
+              {/* Thumbnail */}
+              <div className={`bg-gradient-to-br ${from} ${to} h-24 flex items-center justify-center w-full`}>
+                <Icon size={32} className="text-white/80" />
+              </div>
 
               {/* Info */}
               <div className="px-3 pt-2.5 pb-3 flex flex-col gap-2.5 flex-1">
@@ -111,25 +107,14 @@ export default function DashboardPage() {
                   <span className="inline-block mt-0.5 text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{tag}</span>
                 </div>
 
-                {/* Dual action buttons */}
-                <div className="flex gap-2 mt-auto">
-                  <button
-                    onClick={() => router.push(`/resume/${id}`)}
-                    title="Preview template"
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-gray-500 border border-gray-200 rounded-xl hover:border-primary-200 hover:text-primary-600 hover:bg-primary-50 active:scale-95 transition-all"
-                  >
-                    <Eye size={12} />
-                    <span>View</span>
-                  </button>
-                  <button
-                    onClick={() => router.push(`/editor/${id}`)}
-                    title="Edit this template"
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-white bg-primary-600 rounded-xl hover:bg-primary-700 active:scale-95 transition-all"
-                  >
-                    <PenLine size={12} />
-                    <span>Edit</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => router.push(`/editor/${id}`)}
+                  title="Edit this template"
+                  className="mt-auto flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-white bg-primary-600 rounded-xl hover:bg-primary-700 active:scale-95 transition-all"
+                >
+                  <PenLine size={12} />
+                  <span>Edit</span>
+                </button>
               </div>
             </motion.div>
           ))}
