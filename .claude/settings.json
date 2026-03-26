@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"c:/Users/turgu/resume-builder\" && git add . && git diff --cached --quiet || { MSG=$(git diff --cached --name-only 2>/dev/null | head -5 | tr '\\n' ' ' | xargs); git commit -m \"Auto update: ${MSG:-changes}\" && git push; }",
+            "timeout": 30,
+            "statusMessage": "Committing and pushing to GitHub...",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
