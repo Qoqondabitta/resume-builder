@@ -93,31 +93,32 @@ export default function EditorPage() {
     if (sel) { sel.removeAllRanges(); sel.addRange(r); }
   };
 
-  // Font-size: wrap selected text in a <span> — global base only when nothing selected
+  // Font-size: wrap ONLY the selected text in a <span style="font-size:Npx">.
+  // If nothing is selected → do nothing (no global change).
   const changeFontSize = (delta: number) => {
-    const sel   = window.getSelection();
-    const hasSelection = sel && sel.rangeCount > 0 && !sel.isCollapsed;
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    if (selection.toString().trim() === '') return; // no text selected → do nothing
+
+    const range   = selection.getRangeAt(0);
     const newSize = Math.max(8, Math.min(36, data.styles.fontSize + delta));
 
-    if (hasSelection) {
-      const range = sel!.getRangeAt(0);
-      const span  = document.createElement('span');
-      span.style.fontSize = `${newSize}px`;
-      try {
-        range.surroundContents(span);
-      } catch {
-        // Selection crosses element boundaries — extract then re-insert
-        const frag = range.extractContents();
-        span.appendChild(frag);
-        range.insertNode(span);
-      }
-      // Notify the EditableText host so it syncs innerHTML → React state
-      const host = span.closest<HTMLElement>('[contenteditable="true"]');
-      host?.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
-      // Nothing selected → change the global base size
-      updateStyles({ fontSize: newSize });
-    }
+    // Extract the selected nodes, wrap them, re-insert
+    const span = document.createElement('span');
+    span.style.fontSize = `${newSize}px`;
+    const extracted = range.extractContents();
+    span.appendChild(extracted);
+    range.insertNode(span);
+
+    // Restore cursor inside the new span
+    selection.removeAllRanges();
+    const newRange = document.createRange();
+    newRange.selectNodeContents(span);
+    selection.addRange(newRange);
+
+    // Notify the EditableText host so it syncs innerHTML → React state
+    const host = span.closest<HTMLElement>('[contenteditable="true"]');
+    host?.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
   // Text color: restore saved selection then use execCommand foreColor on it
