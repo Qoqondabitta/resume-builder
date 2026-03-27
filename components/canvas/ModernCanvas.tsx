@@ -85,7 +85,7 @@ export default function ModernCanvas({ data, onDataChange }: Props) {
             <EditableText
               value={s.content}
               onChange={v => updateSection(s.id, { content: v })}
-              className="text-[11px] text-white/85 leading-relaxed"
+              className="text-white/85 leading-relaxed"
             />
           </div>
         ))}
@@ -105,7 +105,7 @@ export default function ModernCanvas({ data, onDataChange }: Props) {
             <EditableText
               value={s.content}
               onChange={v => updateSection(s.id, { content: v })}
-              className="text-[11px] leading-relaxed"
+              className="leading-relaxed"
             />
           </div>
         ))}
@@ -126,7 +126,7 @@ function ContactRow({
   return (
     <div className="flex items-start gap-1.5">
       <span className="text-white/60 mt-0.5 shrink-0">{icon}</span>
-      <EditableText value={value} onChange={onChange} className="text-[11px] text-white/85 flex-1" />
+      <EditableText value={value} onChange={onChange} className="text-white/85 flex-1" />
     </div>
   );
 }

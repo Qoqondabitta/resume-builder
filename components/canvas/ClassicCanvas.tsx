@@ -66,7 +66,7 @@ export default function ClassicCanvas({ data, onDataChange }: Props) {
                 <EditableText
                   value={pi[key]}
                   onChange={v => updateInfo(key, v)}
-                  className="text-[11px] text-white/80"
+                  className="text-white/80"
                 />
               </div>
             ) : null,
@@ -137,7 +137,7 @@ function SectionBlock({
       <EditableText
         value={section.content}
         onChange={v => onUpdate({ content: v })}
-        className="text-[11px] leading-relaxed"
+        className="leading-relaxed"
       />
     </div>
   );

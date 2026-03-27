@@ -67,7 +67,7 @@ export default function MinimalCanvas({ data, onDataChange }: Props) {
                 <EditableText
                   value={pi[key]}
                   onChange={v => updateInfo(key, v)}
-                  className="text-[11px] text-gray-500"
+                  className="text-gray-500"
                 />
               </div>
             ) : null,
@@ -136,7 +136,7 @@ function MinimalSection({
       <EditableText
         value={section.content}
         onChange={v => onUpdate({ content: v })}
-        className="text-[11px] leading-relaxed text-gray-600 pl-3"
+        className="leading-relaxed text-gray-600 pl-3"
       />
     </div>
   );
