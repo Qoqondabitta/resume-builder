@@ -35,7 +35,9 @@ export default function EditorPage() {
   const [showSidebar,    setShowSidebar]    = useState(true);
   const [showAddSection, setShowAddSection] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState('');
-  const photoInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef  = useRef<HTMLInputElement>(null);
+  // Saved selection range — used to restore focus before applying color
+  const savedRangeRef  = useRef<Range | null>(null);
 
   // ── Load from localStorage ────────────────────────────────────────────────
   useEffect(() => {
@@ -72,8 +74,67 @@ export default function EditorPage() {
   const updateStyles = (patch: Partial<CanvasResumeData['styles']>) =>
     setData(d => ({ ...d, styles: { ...d.styles, ...patch } }));
 
-  // B/I/U apply to the currently-selected text via execCommand
+  // B/I/U / alignment — execCommand already operates on the active selection
   const execFormat = (cmd: string) => document.execCommand(cmd);
+
+  // Snapshot the current selection before toolbar steals focus (e.g. color picker)
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    savedRangeRef.current =
+      sel && sel.rangeCount > 0 && !sel.isCollapsed
+        ? sel.getRangeAt(0).cloneRange()
+        : null;
+  };
+
+  const restoreSelection = () => {
+    const r = savedRangeRef.current;
+    if (!r) return;
+    const sel = window.getSelection();
+    if (sel) { sel.removeAllRanges(); sel.addRange(r); }
+  };
+
+  // Font-size: wrap selected text in a <span> — global base only when nothing selected
+  const changeFontSize = (delta: number) => {
+    const sel   = window.getSelection();
+    const hasSelection = sel && sel.rangeCount > 0 && !sel.isCollapsed;
+    const newSize = Math.max(8, Math.min(36, data.styles.fontSize + delta));
+
+    if (hasSelection) {
+      const range = sel!.getRangeAt(0);
+      const span  = document.createElement('span');
+      span.style.fontSize = `${newSize}px`;
+      try {
+        range.surroundContents(span);
+      } catch {
+        // Selection crosses element boundaries — extract then re-insert
+        const frag = range.extractContents();
+        span.appendChild(frag);
+        range.insertNode(span);
+      }
+      // Notify the EditableText host so it syncs innerHTML → React state
+      const host = span.closest<HTMLElement>('[contenteditable="true"]');
+      host?.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+      // Nothing selected → change the global base size
+      updateStyles({ fontSize: newSize });
+    }
+  };
+
+  // Text color: restore saved selection then use execCommand foreColor on it
+  const applyTextColor = (color: string) => {
+    restoreSelection();
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+      document.execCommand('foreColor', false, color);
+      // Sync host EditableText state
+      const host = sel.getRangeAt(0).commonAncestorContainer.parentElement
+                     ?.closest<HTMLElement>('[contenteditable="true"]');
+      host?.dispatchEvent(new Event('input', { bubbles: true }));
+    } else {
+      // Nothing selected → change the global text color
+      updateStyles({ textColor: color });
+    }
+  };
 
   // ── Section helpers ───────────────────────────────────────────────────────
   const addSection = () => {
@@ -188,7 +249,7 @@ export default function EditorPage() {
         {/* Font size */}
         <div className="flex items-center border border-gray-200 rounded overflow-hidden shrink-0">
           <button
-            onMouseDown={e => { e.preventDefault(); updateStyles({ fontSize: Math.max(8, data.styles.fontSize - 1) }); }}
+            onMouseDown={e => { e.preventDefault(); changeFontSize(-1); }}
             className="px-1.5 py-1 hover:bg-gray-100 text-gray-600"
           >
             <Minus size={12} />
@@ -197,7 +258,7 @@ export default function EditorPage() {
             {data.styles.fontSize}
           </span>
           <button
-            onMouseDown={e => { e.preventDefault(); updateStyles({ fontSize: Math.min(20, data.styles.fontSize + 1) }); }}
+            onMouseDown={e => { e.preventDefault(); changeFontSize(+1); }}
             className="px-1.5 py-1 hover:bg-gray-100 text-gray-600"
           >
             <Plus size={12} />
@@ -241,13 +302,17 @@ export default function EditorPage() {
 
         <div className="w-px h-6 bg-gray-200 mx-1 shrink-0" />
 
-        {/* Font color */}
-        <label className="flex items-center gap-1 shrink-0 cursor-pointer" title="Text color">
+        {/* Font color — save selection before color picker opens, restore + apply after */}
+        <label
+          className="flex items-center gap-1 shrink-0 cursor-pointer"
+          title="Text color"
+          onMouseDown={saveSelection}
+        >
           <span className="text-xs font-bold text-gray-500">A</span>
           <input
             type="color"
             value={data.styles.textColor}
-            onChange={e => updateStyles({ textColor: e.target.value })}
+            onChange={e => applyTextColor(e.target.value)}
             className="w-5 h-5 cursor-pointer border-0 rounded"
           />
         </label>
